@@ -34,7 +34,7 @@ from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
     format_part,
     get_tool_calls,
-    to_model_message,
+    to_model_request,
 )
 
 
@@ -151,15 +151,15 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
                 agent._function_toolset.add_function(
-                    wrapped,
-                    True,
-                    None,
-                    1,
-                    None,
-                    "auto",
-                    False,
-                    GenerateToolJsonSchema,
-                    None,
+                    func=wrapped,
+                    takes_ctx=True,
+                    name=None,
+                    retries=1,
+                    prepare=None,
+                    docstring_format="auto",
+                    require_parameter_descriptions=False,
+                    schema_generator=GenerateToolJsonSchema,
+                    strict=None,
                 )
             else:
                 agent.tool_plain(wrapped)
@@ -273,7 +273,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             result: AgentRunResult = await agent.run(
                 converted_prompts,  # Pass converted prompts
                 deps=self._context,  # type: ignore
-                message_history=[to_model_message(m) for m in message_history],
+                message_history=[to_model_request(m) for m in message_history],
                 model=to_use,  # type: ignore
                 output_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
@@ -391,7 +391,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
 
         try:
             converted_prompts = await convert_prompts_to_user_content(prompts)
-            model_messages = [to_model_message(m) for m in message_history]
+            model_messages = [to_model_request(m) for m in message_history]
             msg = "Starting PydanticAI agent iteration run_id=%s with model=%s"
             logger.debug(msg, message_id, resolved_model_name)
             async with agent.iter(
@@ -446,7 +446,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
         converted_prompts = await convert_prompts_to_user_content(prompts)
 
         # Convert all messages to pydantic-ai format
-        model_messages = [to_model_message(m) for m in message_history]
+        model_messages = [to_model_request(m) for m in message_history]
 
         async with agent.run_stream(
             converted_prompts,

@@ -95,15 +95,9 @@ class LLMlingACPAgent(ACPAgent):
         self.usage_limits = usage_limits
         self.client_capabilities: ClientCapabilities | None = None
         command_store = CommandStore(enable_system_commands=True)
-        command_store._initialize_sync()  # Ensure store is initialized
-
-        for command in get_commands():
+        command_store._initialize_sync()
+        for command in [*get_commands(), *get_acp_commands()]:
             command_store.register_command(command)
-
-        # Add ACP-specific commands
-        for command in get_acp_commands():
-            command_store.register_command(command)
-
         self.command_bridge = ACPCommandBridge(command_store)
         self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
         self.tasks = TaskManager()

@@ -210,7 +210,7 @@ def convert_model_message(  # noqa: PLR0911
             raise ValueError(msg)
 
 
-def to_model_message(message: ChatMessage[str | Content]) -> ModelMessage:
+def to_model_request(message: ChatMessage[str | Content]) -> ModelRequest:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
     import anyenv
 

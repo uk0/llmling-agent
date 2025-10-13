@@ -42,7 +42,7 @@ class StdlibInputProvider(InputProvider):
         message_history: list[ChatMessage] | None = None,
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""
-        if result := await self._get_promptantic_result(result_type):
+        if result := await _get_promptantic_result(result_type):
             return result
 
         # Fallback: Get raw input and validate
@@ -53,24 +53,6 @@ class StdlibInputProvider(InputProvider):
         except Exception as e:
             msg = f"Invalid response format: {e}"
             raise ToolError(msg) from e
-
-    async def _get_promptantic_result(
-        self,
-        result_type: type[BaseModel],
-    ) -> BaseModel | None:
-        """Helper to get structured input via promptantic.
-
-        Returns None if promptantic is not available or fails.
-        """
-        try:
-            from promptantic import ModelGenerator
-
-            return await ModelGenerator().apopulate(result_type)
-        except ImportError:
-            return None
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Promptantic failed: %s", e)
-            return None
 
     async def get_tool_confirmation(
         self,
@@ -157,3 +139,19 @@ class StdlibInputProvider(InputProvider):
             "Use prompt-toolkit or textual provider instead."
         )
         raise NotImplementedError(msg)
+
+
+async def _get_promptantic_result(result_type: type[BaseModel]) -> BaseModel | None:
+    """Helper to get structured input via promptantic.
+
+    Returns None if promptantic is not available or fails.
+    """
+    try:
+        from promptantic import ModelGenerator
+
+        return await ModelGenerator().apopulate(result_type)
+    except ImportError:
+        return None
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Promptantic failed: %s", e)
+        return None
