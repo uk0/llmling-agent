@@ -48,6 +48,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🛜 Comletely UPath backed. Any file operations under our control is routed through fsspec to allow referencing remote sourcces.
 - 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
+- 🖥️ ACP (Agent Client Protocol) integration for seamless IDE connectivity via JSON-RPC 2.0
 - 🏎️ No fixed dependencies on all the super-heavy LLM libraries. Way faster startup than most other frameworks, and all IO in our control is async.
 - 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
@@ -866,5 +867,19 @@ classDiagram
     }
 ```
 
+
+
+## Integrations
+
+### Agent Client Protocol (ACP)
+
+llmling-agent supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
+
+```bash
+# Start ACP server
+llmling-agent acp config.yml --file-access --terminal-access
+```
+
+Compatible with ACP-enabled editors like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
 
 ### [Read the documentation for further info!](https://phil65.github.io/llmling-agent/)

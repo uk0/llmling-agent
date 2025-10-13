@@ -92,6 +92,12 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/advanced/passing_data.md")
 
 
+@nav.route.page("ACP Integration", icon="octicon:desktop-download-16")
+def _(page: mk.MkPage):
+    """Agent Client Protocol integration for desktop applications."""
+    page += mk.MkTemplate("docs/advanced/acp_integration.md")
+
+
 # @nav.route.page("UPath & YAML Features", icon="octicon:file-code-16")
 # def _(page: mk.MkPage):
 #     """UPath integration and YAML features."""

@@ -1,0 +1,157 @@
+# ACP Integration
+
+## What is ACP?
+
+The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents over stdio streams. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.
+
+ACP provides:
+- Bidirectional communication between editor and agent
+- Session management and conversation history
+- File system operations with permission handling
+- Terminal integration for command execution
+- Support for multiple agents with mode switching
+
+## Installation & Setup
+
+Install llmling-agent with ACP support:
+
+```bash
+pip install llmling-agent[acp]
+```
+
+Or using uvx for one-off usage:
+
+```bash
+uvx --python 3.13 llmling-agent[acp]@latest acp --help
+```
+
+## CLI Usage
+
+### Basic Commands
+
+Start an ACP server from a configuration file:
+
+```bash
+llmling-agent acp agents.yml
+```
+
+With file system access enabled:
+
+```bash
+llmling-agent acp agents.yml --file-access
+```
+
+With full capabilities (file system + terminal):
+
+```bash
+llmling-agent acp agents.yml --file-access --terminal-access
+```
+
+### Available Options
+
+- `--file-access/--no-file-access`: Enable file system operations (default: enabled)
+- `--terminal-access/--no-terminal-access`: Enable terminal integration (default: enabled)  
+- `--session-support/--no-session-support`: Enable session loading (default: enabled)
+- `--model-provider`: Specify model providers to search (can be repeated)
+- `--show-messages`: Show message activity in logs
+- `--log-level`: Set logging level (debug, info, warning, error)
+
+## IDE Configuration
+
+### Zed Editor
+
+Add this configuration to your Zed `settings.json`:
+
+```json
+{
+  "agent_servers": {
+    "LLMling": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.13",
+        "llmling-agent[default]@latest",
+        "acp",
+        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/src/llmling_agent_examples/pick_experts/config.yml",
+        "--model-provider",
+        "openai"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+This configuration:
+- Uses uvx to run the latest version without local installation
+- Points to a remote configuration file with multiple expert agents
+- Specifies OpenAI as the model provider
+- Sets the required API key via environment variables
+
+### Other IDEs
+
+For IDEs that support ACP, the general pattern is:
+1. Set the command to `llmling-agent` (or `uvx llmling-agent[acp]@latest`)
+2. Add `acp` as the first argument
+3. Specify your configuration file path
+4. Add any desired CLI options
+5. Set required environment variables (API keys, etc.)
+
+## Multi-Agent Modes
+
+When your configuration includes multiple agents, the IDE will show a mode selector allowing users to switch between different agents mid-conversation.
+
+Example configuration with multiple agents:
+
+```yaml
+agents:
+  code_reviewer:
+    name: "Code Reviewer"
+    model: "openai:gpt-4"
+    system_prompt: "You are an expert code reviewer..."
+    
+  documentation_writer:
+    name: "Documentation Writer" 
+    model: "anthropic:claude-3-sonnet"
+    system_prompt: "You are a technical documentation expert..."
+    
+  bug_fixer:
+    name: "Bug Fixer"
+    model: "openai:gpt-4"
+    system_prompt: "You are an expert at debugging and fixing code..."
+```
+
+Each agent appears as a separate "mode" in the IDE interface, allowing users to:
+- Switch between specialized agents for different tasks
+- Maintain separate conversation contexts per agent
+- Access agent-specific capabilities and tools
+
+## Configuration
+
+### Remote Configurations
+
+You can reference remote configuration files directly:
+
+```bash
+llmling-agent acp https://example.com/config.yml
+```
+
+### Environment Variables
+
+Set API keys and other sensitive data via environment variables:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+llmling-agent acp config.yml
+```
+
+### Provider Selection
+
+Limit which providers are searched for models:
+
+```bash
+llmling-agent acp config.yml --model-provider openai --model-provider anthropic
+```
