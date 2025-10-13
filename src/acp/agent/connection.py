@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Self
 
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
-from acp.connection import Connection, StreamObserver
+from acp.connection import Connection
 from acp.exceptions import RequestError
 from acp.schema import (
     AuthenticateRequest,
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from acp.agent.protocol import Agent
+    from acp.connection import StreamObserver
     from acp.meta import AgentMethod
     from acp.schema import (
         CreateTerminalRequest,
