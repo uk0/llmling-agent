@@ -101,7 +101,7 @@ async def list_tools(
         for tool_info in await agent.tools.get_tools()
     ]
 
-    headers = ["Status", "Name", "Source", "Description"]
+    headers = ["Status", "Name", "Source"]
     table = format_table(headers, rows)
     await ctx.output.print(f"## 🔧 Available Tools\n\n{table}")
 
@@ -120,8 +120,8 @@ async def tool_info(
     agent = ctx.context.agent
 
     try:
-        tool_info = agent.tools[tool_name]
-
+        tool_info = await agent.tools.get_tool(tool_name)
+        assert tool_info, f"Tool {tool_name} not found"
         # Start with the standard tool info format
         sections = [tool_info.format_info(indent="")]
 
