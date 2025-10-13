@@ -6,11 +6,7 @@ from dataclasses import dataclass
 import json
 from typing import TYPE_CHECKING
 
-from slashed import SlashedCommand
-
-
-if TYPE_CHECKING:
-    from slashed import CommandContext
+from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 
 if TYPE_CHECKING:

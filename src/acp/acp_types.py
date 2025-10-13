@@ -98,8 +98,8 @@ class SessionData:
     mcp_servers: list[MCPServer]
     """MCP server configurations"""
 
-    conversation: list[SessionUpdate]
-    """Complete conversation history"""
+    notifications: list[SessionUpdate]
+    """Complete notification history"""
 
     metadata: dict[str, Any]
     """Additional session metadata"""

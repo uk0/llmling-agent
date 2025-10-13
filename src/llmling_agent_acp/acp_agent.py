@@ -24,6 +24,7 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
+from llmling_agent_acp.acp_commands import get_acp_commands
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.session_manager import ACPSessionManager
@@ -97,6 +98,10 @@ class LLMlingACPAgent(ACPAgent):
         command_store._initialize_sync()  # Ensure store is initialized
 
         for command in get_commands():
+            command_store.register_command(command)
+
+        # Add ACP-specific commands
+        for command in get_acp_commands():
             command_store.register_command(command)
 
         self.command_bridge = ACPCommandBridge(command_store)
