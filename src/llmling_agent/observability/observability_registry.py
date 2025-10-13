@@ -44,14 +44,13 @@ class ObservabilityRegistry:
             logger.debug("Provider %s is disabled", config.type)
             return
 
-        # Configure OTEL environment variables based on provider
-        _setup_otel_environment(config)
+        _setup_otel_environment(config)  # Configure OTEL env variables based on provider
         logfire.configure(
             service_name=config.service_name,
             environment=config.environment,
             send_to_logfire=(config.type == "logfire"),
         )
-
+        logfire.instrument_pydantic_ai()
         self._configured = True
         logger.info("Configured observability with %s backend", config.type)
 
