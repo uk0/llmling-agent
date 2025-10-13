@@ -57,7 +57,7 @@ class CopyClipboardCommand(SlashedCommand):
         )
 
         if not content.strip():
-            await ctx.output.print("ℹ️ **No messages found to copy**")
+            await ctx.output.print("ℹ️ **No messages found to copy**")  #  noqa: RUF001
             return
 
         try:

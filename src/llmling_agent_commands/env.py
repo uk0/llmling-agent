@@ -122,7 +122,7 @@ async def edit_env(
                 msg = f"Failed to open environment file: {e}"
                 raise CommandError(msg) from e
         case None:
-            await ctx.output.print("ℹ️ **No environment configured**")
+            await ctx.output.print("ℹ️ **No environment configured**")  #  noqa: RUF001
 
 
 set_env_cmd = Command(

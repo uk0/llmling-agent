@@ -137,7 +137,7 @@ async def list_workers_command(
     worker_tools = [i for i in ctx.context.agent.tools.values() if i.source == "agent"]
 
     if not worker_tools:
-        await ctx.output.print("ℹ️ **No worker tools registered**")
+        await ctx.output.print("ℹ️ **No worker tools registered**")  #  noqa: RUF001
         return
 
     rows = []
