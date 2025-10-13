@@ -147,7 +147,7 @@ class ACPServer:
 
             reader, writer = await stdio_streams()
             file = self.debug_file if self.debug_messages else None
-            AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
+            conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
             logger.info(
                 "ACP server started: file_access=%s, terminal=%s, session_support=%s",
                 self.file_access,
@@ -161,7 +161,8 @@ class ACPServer:
                 logger.info("ACP server shutdown requested")
             except Exception:
                 logger.exception("Connection receive task failed")
-
+            finally:
+                await conn.close()
         except Exception:
             logger.exception("Error running ACP server")
             raise
