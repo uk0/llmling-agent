@@ -17,7 +17,7 @@ class FabricPromptHub(BasePromptProvider):
     """Provider for prompts from Fabric GitHub repository."""
 
     _BASE_URL = "https://raw.githubusercontent.com/danielmiessler/fabric/main"
-    _API_URL = "https://api.github.com/repos/danielmiessler/fabric/contents/patterns"
+    _API_URL = "https://api.github.com/repos/danielmiessler/fabric/contents/data/patterns"
 
     def __init__(self, config: FabricConfig):
         self.config = config
@@ -29,8 +29,8 @@ class FabricPromptHub(BasePromptProvider):
         variables: dict[str, Any] | None = None,
     ) -> str:
         """Get prompt from Fabric GitHub repository."""
-        system_url = f"{self._BASE_URL}/patterns/{name}/system.md"
-        user_url = f"{self._BASE_URL}/patterns/{name}/user.md"
+        system_url = f"{self._BASE_URL}/data/patterns/{name}/system.md"
+        user_url = f"{self._BASE_URL}/data/patterns/{name}/user.md"
 
         async with httpx.AsyncClient() as client:
             # Try system prompt first
