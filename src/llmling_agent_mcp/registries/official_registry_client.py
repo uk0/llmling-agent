@@ -6,6 +6,9 @@ registry API for server discovery and configuration.
 
 from __future__ import annotations
 
+from enum import Enum
+import logging
+import time
 from typing import Any
 
 import httpx
@@ -13,7 +16,25 @@ from pydantic import Field, field_validator
 from schemez import Schema
 
 
+# Constants
+HTTP_NOT_FOUND = 404
+CACHE_TTL = 3600  # 1 hour
+
 ServiceName = str
+log = logging.getLogger(__name__)
+
+
+class TransportType(Enum):
+    """Supported transport types for MCP servers."""
+
+    STDIO = "stdio"
+    SSE = "sse"
+    WEBSOCKET = "websocket"
+    HTTP = "http"
+
+
+class UnsupportedTransportError(Exception):
+    """Raised when no supported transport is available."""
 
 
 class RegistryRepository(Schema):
@@ -112,6 +133,47 @@ class RegistryServer(Schema):
     schema_: str | None = Field(None, alias="$schema")
     """JSON schema URL."""
 
+    def get_preferred_transport(self) -> TransportType:
+        """Select optimal transport method based on availability and performance."""
+        # Prefer local packages for better performance/security
+        for package in self.packages:
+            if package.registry_type == "docker":  # OCI containers
+                return TransportType.STDIO
+
+        # Fallback to remote endpoints
+        for remote in self.remotes:
+            if remote.type == "sse":
+                return TransportType.SSE
+            if remote.type in ["streamable-http", "http"]:
+                return TransportType.HTTP
+            if remote.type == "websocket":
+                return TransportType.WEBSOCKET
+
+        # Provide helpful error message
+        available_transports = []
+        if self.packages:
+            available_transports.extend([
+                f"package:{pkg.registry_type}" for pkg in self.packages
+            ])
+        if self.remotes:
+            available_transports.extend([
+                f"remote:{remote.type}" for remote in self.remotes
+            ])
+
+        if available_transports:
+            error_msg = (
+                f"No supported transport for {self.name}. "
+                f"Available: {available_transports}. "
+                f"Supported: docker packages, sse/streamable-http/websocket remotes"
+            )
+        else:
+            error_msg = (
+                f"No transports available for {self.name}. "
+                f"Server metadata may be incomplete"
+            )
+
+        raise UnsupportedTransportError(error_msg)
+
 
 class RegistryServerWrapper(Schema):
     """Wrapper for server data from the official registry API."""
@@ -139,12 +201,23 @@ class MCPRegistryClient:
     def __init__(self, base_url: str = "https://registry.modelcontextprotocol.io"):
         self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
+        self._cache: dict[str, dict[str, Any]] = {}
 
     async def list_servers(
         self, search: str | None = None, status: str = "active"
     ) -> list[RegistryServer]:
         """List servers from registry with optional filtering."""
+        cache_key = f"list_servers:{search}:{status}"
+
+        # Check cache first
+        if cache_key in self._cache:
+            cached_data = self._cache[cache_key]
+            if time.time() - cached_data["timestamp"] < CACHE_TTL:
+                log.debug("[MCPRegistry] Using cached server list")
+                return cached_data["servers"]
+
         try:
+            log.info("[MCPRegistry] Fetching server list from registry")
             response = await self.client.get(f"{self.base_url}/v0/servers")
             response.raise_for_status()
             data = response.json()
@@ -175,11 +248,25 @@ class MCPRegistryClient:
                     or search_lower in s.description.lower()
                 ]
 
+            # Cache the result
+            self._cache[cache_key] = {"servers": servers, "timestamp": time.time()}
+            log.info("[MCPRegistry] Successfully fetched %d servers", len(servers))
             return servers
 
     async def get_server(self, server_id: str) -> RegistryServer:
         """Get full server details including packages."""
+        cache_key = f"server:{server_id}"
+
+        # Check cache first
+        if cache_key in self._cache:
+            cached_data = self._cache[cache_key]
+            if time.time() - cached_data["timestamp"] < CACHE_TTL:
+                log.debug("[MCPRegistry] Using cached server details for %s", server_id)
+                return cached_data["server"]
+
         try:
+            log.info("[MCPRegistry] Fetching server details for %s", server_id)
+
             # Get all wrappers to access metadata
             response = await self.client.get(f"{self.base_url}/v0/servers")
             response.raise_for_status()
@@ -211,21 +298,35 @@ class MCPRegistryClient:
             response.raise_for_status()
 
             server_data = response.json()
-            return RegistryServer(**server_data)
+            server = RegistryServer(**server_data)
+
+            # Cache the result
+            self._cache[cache_key] = {"server": server, "timestamp": time.time()}
+            log.info(
+                "[MCPRegistry] Successfully fetched server details for %s", server_id
+            )
 
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:  # noqa: PLR2004
+            if e.response.status_code == HTTP_NOT_FOUND:
                 msg = f"Server {server_id!r} not found in registry"
                 raise MCPRegistryError(msg) from e
             msg = f"Failed to get server details: {e}"
             raise MCPRegistryError(msg) from e
-        except httpx.HTTPError as e:
+        except (httpx.HTTPError, ValueError, KeyError) as e:
             msg = f"Failed to get server details: {e}"
             raise MCPRegistryError(msg) from e
+        else:
+            return server
+
+    def clear_cache(self):
+        """Clear the metadata cache."""
+        self._cache.clear()
+        log.debug("[MCPRegistry] Cleared metadata cache")
 
     async def close(self):
         """Close the HTTP client."""
         await self.client.aclose()
+        log.debug("[MCPRegistry] Closed HTTP client")
 
     async def __aenter__(self):
         return self
@@ -244,14 +345,37 @@ if __name__ == "__main__":
     import devtools
 
     async def main():
-        """Test the MCP registry client."""
+        """Test the MCP registry client with caching and transport resolution."""
         async with MCPRegistryClient() as client:
             print("Listing servers from official registry...")
             servers = await client.list_servers()
             print(f"Found {len(servers)} servers")
 
-            for server in servers[:3]:  # Show first 3 servers
+            # Test caching - second call should be faster
+            print("\nTesting cache (second call should be faster)...")
+            servers_cached = await client.list_servers()
+            print(f"Cached result: {len(servers_cached)} servers")
+
+            # Test transport resolution for first few servers
+            for server in servers[:3]:
                 print(f"\n=== {server.name} ===")
+                try:
+                    transport = server.get_preferred_transport()
+                    print(f"Preferred transport: {transport.value}")
+
+                    # Show available transports
+                    if server.packages:
+                        print(f"Packages: {[p.registry_type for p in server.packages]}")
+                    if server.remotes:
+                        print(f"Remotes: {[r.type for r in server.remotes]}")
+
+                except UnsupportedTransportError as e:
+                    print(f"Transport error: {e}")
+
                 devtools.debug(server)
+
+            # Clear cache and test
+            print("\nClearing cache...")
+            client.clear_cache()
 
     asyncio.run(main())
