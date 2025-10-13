@@ -40,13 +40,13 @@ async def prompt_command(
 ):
     """Show prompt content."""
     if not args:
-        msg = "Usage: /prompt <[provider:]identifier[@version][?var=val]>"
+        msg = "**Usage:** `/prompt <[provider:]identifier[@version][?var=val]>`"
         await ctx.output.print(msg)
         return
 
     try:
         prompt = await ctx.context.prompt_manager.get(args[0])
-        await ctx.output.print("\nPrompt Content:\n" + prompt)
+        await ctx.output.print(f"## 📝 Prompt Content\n\n```\n{prompt}\n```")
     except Exception as e:
         msg = f"Error getting prompt: {e}"
         raise CommandError(msg) from e
@@ -59,24 +59,24 @@ async def list_prompts(
 ):
     """List available prompts from all providers."""
     prompts = await ctx.context.prompt_manager.list_prompts()
-    output_lines = ["\nAvailable prompts:"]
+    output_lines = ["\n## 📝 Available Prompts\n"]
 
     for provider, provider_prompts in prompts.items():
         if not provider_prompts:
             continue
 
-        output_lines.append(f"\n{provider}:")
+        output_lines.append(f"\n### {provider.title()}\n")
         sorted_prompts = sorted(provider_prompts)
 
         # For builtin prompts we can show their description
         if provider == "builtin":
             for prompt_name in sorted_prompts:
                 prompt = ctx.context.definition.prompts.system_prompts[prompt_name]
-                desc = f" - {prompt.category}"
-                output_lines.append(f"  {prompt_name:<30}{desc}")
+                desc = f" - *{prompt.category}*" if prompt.category else ""
+                output_lines.append(f"- **{prompt_name}**{desc}")
         else:
             # For other providers, just show names
-            output_lines.extend(f"  {prompt_name}" for prompt_name in sorted_prompts)
+            output_lines.extend(f"- `{prompt_name}`" for prompt_name in sorted_prompts)
     await ctx.output.print("\n".join(output_lines))
 
 

@@ -15,6 +15,7 @@ from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
@@ -90,13 +91,19 @@ async def list_tools(
 ):
     """List all available tools."""
     agent = ctx.context.agent
-    # Format output using Tool formatting
-    sections = ["# Available Tools\n"]
-    for tool_info in agent.tools.values():
-        status = "✓" if tool_info.enabled else "✗"
-        sections.append(f"{status} {tool_info.format_info()}")
 
-    await ctx.output.print("\n".join(sections))
+    rows = []
+    for tool_info in agent.tools.values():
+        rows.append({
+            "Status": "✅" if tool_info.enabled else "❌",
+            "Name": tool_info.name,
+            "Source": tool_info.source,
+            "Description": tool_info.description or "",
+        })
+
+    headers = ["Status", "Name", "Source", "Description"]
+    table = format_table(headers, rows)
+    await ctx.output.print(f"## 🔧 Available Tools\n\n{table}")
 
 
 async def tool_info(
@@ -106,7 +113,7 @@ async def tool_info(
 ):
     """Show detailed information about a tool."""
     if not args:
-        await ctx.output.print("Usage: /show-tool <name>")
+        await ctx.output.print("**Usage:** `/show-tool <name>`")
         return
 
     tool_name = args[0]
@@ -133,12 +140,11 @@ async def tool_info(
             extra_info.extend(f"- {k}: {v}" for k, v in tool_info.metadata.items())
 
         if extra_info:
-            sections.append("\nAdditional Information:")
             sections.extend(extra_info)
 
         await ctx.output.print("\n".join(sections))
     except KeyError:
-        await ctx.output.print(f"Tool '{tool_name}' not found")
+        await ctx.output.print(f"❌ **Tool** `{tool_name}` **not found**")
 
 
 async def toggle_tool(
@@ -151,7 +157,7 @@ async def toggle_tool(
     """Enable or disable a tool."""
     if not args:
         action = "enable" if enable else "disable"
-        await ctx.output.print(f"Usage: /{action}-tool <name>")
+        await ctx.output.print(f"**Usage:** `/{action}-tool <name>`")
         return
 
     name = args[0]
@@ -160,8 +166,9 @@ async def toggle_tool(
             ctx.context.agent.tools.enable_tool(name)
         else:
             ctx.context.agent.tools.disable_tool(name)
+        action_icon = "✅" if enable else "❌"
         action = "enabled" if enable else "disabled"
-        await ctx.output.print(f"Tool '{name}' {action}")
+        await ctx.output.print(f"{action_icon} **Tool** `{name}` **{action}**")
     except ValueError as e:
         msg = f"Failed to {'enable' if enable else 'disable'} tool: {e}"
         raise CommandError(msg) from e
@@ -192,7 +199,9 @@ async def register_tool(
 ):
     """Register a new tool from import path or function."""
     if not args:
-        msg = "Usage: /register-tool <import_path> [--name name] [--description desc]"
+        msg = (
+            "**Usage:** `/register-tool <import_path> [--name name] [--description desc]`"
+        )
         await ctx.output.print(msg)
         return
 
@@ -214,7 +223,9 @@ async def register_tool(
 
         # Show the registered tool info
         info = tool_info.format_info()
-        await ctx.output.print(f"Tool registered successfully:\n {info}")
+        await ctx.output.print(
+            f"✅ **Tool registered successfully:**\n`{tool_info.name}` - {tool_info.description or '*No description*'}"
+        )
 
     except Exception as e:
         msg = f"Failed to register tool: {e}"
@@ -258,7 +269,7 @@ async def write_tool(
         ]
 
         if not tools:
-            await ctx.output.print("No tools found in code")
+            await ctx.output.print("⚠️ **No tools found in code**")
             return
 
         # Register all tools with ctx parameter added
@@ -267,7 +278,9 @@ async def write_tool(
                 func, source="dynamic", metadata={"created_by": "write-tool"}
             )
             info = tool_info.format_info()
-            await ctx.output.print(f"Tool '{tool_info.name}' registered!\n{info}")
+            await ctx.output.print(
+                f"🎉 **Tool** `{tool_info.name}` **registered!**\n{tool_info.description or '*No description*'}"
+            )
 
     except Exception as e:
         msg = f"Error creating tools: {e}"

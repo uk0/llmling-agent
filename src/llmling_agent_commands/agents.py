@@ -8,6 +8,7 @@ from slashed.completers import CallbackCompleter
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.completers import get_available_agents
+from llmling_agent_commands.markdown_utils import format_table
 
 
 CREATE_AGENT_HELP = """\
@@ -71,7 +72,7 @@ async def create_agent_command(
     """Create a new agent in the current session."""
     if not args:
         await ctx.output.print(
-            "Usage: /create-agent <name> --system-prompt 'prompt' [--tools 'tool1|tool2']"
+            "**Usage:** `/create-agent <name> --system-prompt 'prompt' [--tools 'tool1|tool2']`"
         )
         return
 
@@ -98,10 +99,10 @@ async def create_agent_command(
             tools=tools,
         )
 
-        msg = f"Created agent '{name}'"
+        msg = f"✅ **Created agent** `{name}`"
         if tools:
-            msg += f" with tools: {', '.join(tools)}"
-        await ctx.output.print(f"{msg}\nUse /connect {name} to forward messages")
+            msg += f" with tools: `{', '.join(tools)}`"
+        await ctx.output.print(f"{msg}\n\n💡 Use `/connect {name}` to forward messages")
 
     except ValueError as e:
         msg = f"Failed to create agent: {e}"
@@ -115,7 +116,7 @@ async def show_agent(
     import yamling
 
     if not ctx.context.node.context:
-        await ctx.output.print("No node context available")
+        await ctx.output.print("❌ **No node context available**")
         return
 
     # Get the agent's config with current overrides
@@ -153,25 +154,18 @@ async def list_agents(
         msg = "No agent pool available"
         raise CommandError(msg)
 
-    output_lines = ["\nAvailable agents:"]
-
-    # Collect all agent info first
+    rows = []
     for name, agent in ctx.context.pool.agents.items():
-        name_part = name
-        model_part = str(agent.model_name or "")
-        desc_part = agent.description if agent.description else ""
+        rows.append({
+            "Name": name,
+            "Model": str(agent.model_name or ""),
+            "Type": "dynamic" if name not in ctx.context.definition.agents else "static",
+            "Description": agent.description or "",
+        })
 
-        # For dynamically created ones, add indicator
-        dynamic = (
-            "[dim](dynamic)[/dim] " if name not in ctx.context.definition.agents else ""
-        )
-
-        # Format line with proper padding
-        line = f"  {name_part:<20}{dynamic}[dim]{model_part:<15}{desc_part}[/dim]"
-        output_lines.append(line)
-
-    # Send all lines at once
-    await ctx.output.print("\n".join(output_lines))
+    headers = ["Name", "Model", "Type", "Description"]
+    table = format_table(headers, rows)
+    await ctx.output.print(f"## 🤖 Available Agents\n\n{table}")
 
 
 async def switch_agent(
@@ -183,7 +177,7 @@ async def switch_agent(
     msg = "Temporarily disabled"
     raise RuntimeError(msg)
     if not args:
-        await ctx.output.print("Usage: /switch-agent <name>")
+        await ctx.output.print("**Usage:** `/switch-agent <name>`")
         return
 
 

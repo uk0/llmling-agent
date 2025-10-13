@@ -63,7 +63,7 @@ async def connect_command(
 ):
     """Connect to another node."""
     if not args:
-        await ctx.output.print("Usage: /connect <node_name> [--no-wait]")
+        await ctx.output.print("**Usage:** `/connect <node_name> [--no-wait]`")
         return
 
     target = args[0]
@@ -79,8 +79,8 @@ async def connect_command(
             target, wait if wait is not None else True
         )
 
-        msg = f"{source!r} now forwarding messages to {target!r}"
-        msg += " (waiting for responses)" if wait else " (async)"
+        wait_text = "*(waiting for responses)*" if wait else "*(async)*"
+        msg = f"🔗 **Connected:** `{source}` → `{target}` {wait_text}"
         await ctx.output.print(msg)
     except Exception as e:
         msg = f"Failed to connect {source!r} to {target!r}: {e}"
@@ -94,7 +94,7 @@ async def disconnect_command(
 ):
     """Disconnect from another node."""
     if not args:
-        await ctx.output.print("Usage: /disconnect <node_name>")
+        await ctx.output.print("**Usage:** `/disconnect <node_name>`")
         return
 
     target = args[0]
@@ -104,7 +104,7 @@ async def disconnect_command(
         target_node = ctx.context.pool[target]
         assert isinstance(target_node, MessageNode)
         ctx.context.node.connections.disconnect(target_node)
-        await ctx.output.print(f"{source!r} stopped forwarding messages to {target!r}")
+        await ctx.output.print(f"🔌 **Disconnected:** `{source}` ⛔ `{target}`")
     except Exception as e:
         msg = f"{source!r} failed to disconnect from {target!r}: {e}"
         raise CommandError(msg) from e
@@ -117,11 +117,11 @@ async def disconnect_all_command(
 ):
     """Disconnect from all nodes."""
     if not ctx.context.node.connections.get_targets():
-        await ctx.output.print("No active connections")
+        await ctx.output.print("ℹ️ **No active connections**")
         return
     source = ctx.context.node_name
     await ctx.context.node.disconnect_all()
-    await ctx.output.print(f"Disconnected {source!r} from all nodes")
+    await ctx.output.print(f"🔌 **Disconnected** `{source}` from all nodes")
 
 
 async def list_connections(
@@ -131,7 +131,7 @@ async def list_connections(
 ):
     """List current connections."""
     if not ctx.context.node.connections.get_targets():
-        await ctx.output.print("No active connections")
+        await ctx.output.print("ℹ️ **No active connections**")
         return
 
     # Create tree visualization
@@ -150,7 +150,7 @@ async def list_connections(
     with console.capture() as capture:
         console.print(tree)
     tree_str = capture.get()
-    await ctx.output.print(f"\nConnection Tree:\n{tree_str}")
+    await ctx.output.print(f"\n## 🌳 Connection Tree\n\n```\n{tree_str}\n```")
 
 
 connect_cmd = Command(

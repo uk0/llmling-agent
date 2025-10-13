@@ -8,6 +8,7 @@ from slashed.completers import CallbackCompleter
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent_commands.completers import get_resource_names
+from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
@@ -75,20 +76,23 @@ async def list_resources(
         fs = ctx.context.definition.resource_registry.get_fs()
         root = await fs._ls("/", detail=True)
 
-        sections = ["# Available Resources\n"]
+        rows = []
         for entry in root:
             protocol = entry["name"].removesuffix("://")
             info = await fs._info(f"{protocol}://")
 
-            desc = f": {info.get('description', '')}" if "description" in info else ""
-            sections.append(f"- **{protocol}**{desc}")
-            sections.append(f"  Type: {info.get('type', 'unknown')}")
-            if uri := info.get("uri"):
-                sections.append(f"  URI: `{uri}`")
+            rows.append({
+                "Resource": protocol,
+                "Type": info.get("type", "unknown"),
+                "URI": info.get("uri", ""),
+                "Description": info.get("description", ""),
+            })
 
-        await ctx.output.print("\n".join(sections))
+        headers = ["Resource", "Type", "URI", "Description"]
+        table = format_table(headers, rows)
+        await ctx.output.print(f"## 📁 Available Resources\n\n{table}")
     except Exception as e:  # noqa: BLE001
-        await ctx.output.print(f"Failed to list resources: {e}")
+        await ctx.output.print(f"❌ **Failed to list resources:** {e}")
 
 
 async def show_resource(
@@ -98,7 +102,7 @@ async def show_resource(
 ):
     """Show details or content of a resource."""
     if not args:
-        msg = "Usage: /show-resource <name> [--param1 value1] [--param2 value2]"
+        msg = "**Usage:** `/show-resource <name> [--param1 value1] [--param2 value2]`"
         await ctx.output.print(msg)
         return
 
@@ -110,14 +114,14 @@ async def show_resource(
         try:
             info = await fs._info(f"{name}://")
         except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"Resource '{name}' not found: {e}")
+            await ctx.output.print(f"❌ **Resource** `{name}` **not found:** {e}")
             return
 
-        sections = [f"# Resource: {name}\n"]
+        sections = [f"## 📁 Resource: {name}\n"]
         if typ := info.get("type"):
-            sections.append(f"Type: {typ}")
+            sections.append(f"**Type:** `{typ}`")
         if uri := info.get("uri"):
-            sections.append(f"URI: `{uri}`")
+            sections.append(f"**URI:** `{uri}`")
         if desc := info.get("description"):
             sections.append(f"Description: {desc}")
         if mime := info.get("mime_type"):
@@ -133,7 +137,7 @@ async def show_resource(
 
         await ctx.output.print("\n".join(sections))
     except Exception as e:  # noqa: BLE001
-        await ctx.output.print(f"Error accessing resource: {e}")
+        await ctx.output.print(f"❌ **Error accessing resource:** {e}")
 
 
 async def add_resource_command(
@@ -149,7 +153,7 @@ async def add_resource_command(
         /add-resource docs/*.md         # Add all markdown files
     """
     if not args:
-        msg = "Usage: /add-resource <resource>[/path] [--pattern pattern]"
+        msg = "**Usage:** `/add-resource <resource>[/path] [--pattern pattern]`"
         await ctx.output.print(msg)
         return
 
@@ -186,7 +190,7 @@ async def add_resource_command(
                 ctx.context.agent.conversation.add_context_message(
                     content, source=f"{resource_name}/{file}", **kwargs
                 )
-            msg = f"Added {len(files)} files from '{resource_name}'"
+            msg = f"✅ **Added {len(files)} files from** `{resource_name}`"
 
         await ctx.output.print(msg)
 

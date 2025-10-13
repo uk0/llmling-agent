@@ -42,7 +42,7 @@ async def set_env(
     from upath import UPath
 
     if not args:
-        await ctx.output.print("Usage: /set-env <path>")
+        await ctx.output.print("**Usage:** `/set-env <path>`")
         return
 
     env_path = args[0]
@@ -77,8 +77,8 @@ async def set_env(
         await agent.__aenter__()
 
         await ctx.output.print(
-            f"Environment changed to: {env_path}\n"
-            f"Replaced runtime tools: {', '.join(runtime_tools)}"
+            f"✅ **Environment changed to:** `{env_path}`\n"
+            f"🔧 **Replaced runtime tools:** `{', '.join(runtime_tools)}`"
         )
 
     except Exception as e:
@@ -102,25 +102,27 @@ async def edit_env(
             # For file environments, open in browser
             try:
                 webbrowser.open(uri)
-                await ctx.output.print(f"Opening environment file: {uri}")
+                await ctx.output.print(f"🌐 **Opening environment file:** `{uri}`")
             except Exception as e:
                 msg = f"Failed to open environment file: {e}"
                 raise CommandError(msg) from e
         case InlineEnvironment() as cfg:
             # For inline environments, display the configuration
             yaml_config = cfg.model_dump_yaml()
-            await ctx.output.print(f"Inline environment configuration: {yaml_config}")
+            await ctx.output.print(
+                f"📝 **Inline environment configuration:**\n\n```yaml\n{yaml_config}\n```"
+            )
         case str() as path:
             # Legacy string path
             try:
                 resolved = config._resolve_environment_path(path, config.config_file_path)
                 webbrowser.open(resolved)
-                await ctx.output.print(f"Opening environment file: {resolved}")
+                await ctx.output.print(f"🌐 **Opening environment file:** `{resolved}`")
             except Exception as e:
                 msg = f"Failed to open environment file: {e}"
                 raise CommandError(msg) from e
         case None:
-            await ctx.output.print("No environment configured")
+            await ctx.output.print("ℹ️ **No environment configured**")
 
 
 set_env_cmd = Command(

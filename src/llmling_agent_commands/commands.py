@@ -6,6 +6,7 @@ from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
@@ -29,22 +30,28 @@ class ListNodesCommand(SlashedCommand):
             show_connections: Whether to show node connections
         """
         node = ctx.get_data()
-        header = "\nAvailable Nodes:"
-        lines = [header, "=" * len(header)]
         assert node.pool
+
+        rows = []
         for name, node_ in node.pool.nodes.items():
-            # Build status info
+            # Status check
             status = "🔄 busy" if node_.task_manager.is_busy() else "⏳ idle"
 
             # Add connections if requested
             connections = []
             if show_connections and node_.connections.get_targets():
                 connections = [a.name for a in node_.connections.get_targets()]
-                conn_str = f" → {', '.join(connections)}"
+                conn_str = f"→ {', '.join(connections)}"
             else:
                 conn_str = ""
 
-            # Add description if available
-            desc = f" - {node_.description}" if node_.description else ""
-            lines.append(f"{name} ({status}){conn_str}{desc}")
-        await ctx.output.print("\n".join(lines))
+            rows.append({
+                "Node": name,
+                "Status": status,
+                "Connections": conn_str,
+                "Description": node_.description or "",
+            })
+
+        headers = ["Node", "Status", "Connections", "Description"]
+        table = format_table(headers, rows)
+        await ctx.output.print(f"## 🔗 Available Nodes\n\n{table}")

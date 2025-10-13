@@ -8,6 +8,7 @@ from slashed.completers import CallbackCompleter
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent_commands.completers import get_available_agents
+from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
@@ -54,7 +55,7 @@ async def add_worker_command(
 ):
     """Add another agent as a worker tool."""
     if not args:
-        await ctx.output.print("Usage: /add-worker <agent_name> [options]")
+        await ctx.output.print("**Usage:** `/add-worker <agent_name> [options]`")
         return
 
     worker_name = args[0]
@@ -81,8 +82,8 @@ async def add_worker_command(
         )
 
         await ctx.output.print(
-            f"Added agent {worker_name} as worker tool: {tool_info.name}\n"
-            f"Tool enabled: {tool_info.enabled}"
+            f"✅ **Added agent** `{worker_name}` **as worker tool:** `{tool_info.name}`\n"
+            f"🔧 **Tool enabled:** {tool_info.enabled}"
         )
 
     except KeyError as e:
@@ -100,7 +101,7 @@ async def remove_worker_command(
 ):
     """Remove a worker tool."""
     if not args:
-        await ctx.output.print("Usage: /remove-worker <worker_name>")
+        await ctx.output.print("**Usage:** `/remove-worker <worker_name>`")
         return
 
     worker_name = args[0]
@@ -119,7 +120,7 @@ async def remove_worker_command(
 
         # Remove the tool
         del ctx.context.agent.tools[tool_name]
-        await ctx.output.print(f"Removed worker tool: {tool_name}")
+        await ctx.output.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
 
     except Exception as e:
         msg = f"Failed to remove worker: {e}"
@@ -136,21 +137,23 @@ async def list_workers_command(
     worker_tools = [i for i in ctx.context.agent.tools.values() if i.source == "agent"]
 
     if not worker_tools:
-        await ctx.output.print("No worker tools registered")
+        await ctx.output.print("ℹ️ **No worker tools registered**")
         return
 
-    sections = ["Registered Workers:", ""]
+    rows = []
     for tool_info in worker_tools:
         # Extract settings from metadata
         agent_name = tool_info.metadata.get("agent", "unknown")
-        status = "✓" if tool_info.enabled else "✗"
+        rows.append({
+            "Status": "✅" if tool_info.enabled else "❌",
+            "Agent": agent_name,
+            "Tool": tool_info.name,
+            "Description": tool_info.description or "",
+        })
 
-        sections.append(f"{status} {agent_name} (tool: {tool_info.name})")
-        if tool_info.description:
-            sections.append(f"  Description: {tool_info.description}")
-        sections.append("")
-
-    await ctx.output.print("\n".join(sections))
+    headers = ["Status", "Agent", "Tool", "Description"]
+    table = format_table(headers, rows)
+    await ctx.output.print(f"## 👥 Registered Workers\n\n{table}")
 
 
 list_workers_cmd = Command(

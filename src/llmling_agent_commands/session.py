@@ -27,6 +27,7 @@ async def clear_command(
 ):
     """Clear chat history."""
     ctx.context.agent.conversation.clear()
+    await ctx.output.print("🧹 **Chat history cleared**")
 
 
 async def reset_command(
@@ -36,6 +37,9 @@ async def reset_command(
 ):
     """Reset session state."""
     ctx.context.agent.reset()
+    await ctx.output.print(
+        "🔄 **Session state reset** - history cleared, tools and settings restored"
+    )
 
 
 clear_cmd = Command(

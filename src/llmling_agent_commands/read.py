@@ -47,7 +47,7 @@ async def read_command(
         kwargs: Command options
     """
     if not args:
-        await ctx.output.print("Usage: /read <path> [--convert-to-md]")
+        await ctx.output.print("**Usage:** `/read <path> [--convert-to-md]`")
         return
 
     path = args[0]
@@ -56,7 +56,9 @@ async def read_command(
     try:
         agent = ctx.context.agent
         await agent.conversation.add_context_from_path(path, convert_to_md=convert_to_md)
-        await ctx.output.print(f"Added content from {path} to next message as context.")
+        await ctx.output.print(
+            f"📄 **Added content from** `{path}` **to next message as context**"
+        )
     except Exception as e:
         msg = f"Unexpected error reading {path}: {e}"
         logger.exception(msg)
