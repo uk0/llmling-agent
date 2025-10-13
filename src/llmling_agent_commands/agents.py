@@ -72,7 +72,8 @@ async def create_agent_command(
     """Create a new agent in the current session."""
     if not args:
         await ctx.output.print(
-            "**Usage:** `/create-agent <name> --system-prompt 'prompt' [--tools 'tool1|tool2']`"
+            "**Usage:** `/create-agent <name> "
+            "--system-prompt 'prompt' [--tools 'tool1|tool2']`"
         )
         return
 

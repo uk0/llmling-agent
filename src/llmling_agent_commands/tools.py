@@ -222,9 +222,10 @@ async def register_tool(
         )
 
         # Show the registered tool info
-        info = tool_info.format_info()
+        tool_info.format_info()
         await ctx.output.print(
-            f"✅ **Tool registered successfully:**\n`{tool_info.name}` - {tool_info.description or '*No description*'}"
+            f"✅ **Tool registered successfully:**\n`{tool_info.name}`"
+            f" - {tool_info.description or '*No description*'}"
         )
 
     except Exception as e:
@@ -277,9 +278,10 @@ async def write_tool(
             tool_info = ctx.context.agent.tools.register_tool(
                 func, source="dynamic", metadata={"created_by": "write-tool"}
             )
-            info = tool_info.format_info()
+            tool_info.format_info()
             await ctx.output.print(
-                f"🎉 **Tool** `{tool_info.name}` **registered!**\n{tool_info.description or '*No description*'}"
+                f"🎉 **Tool** `{tool_info.name}` **registered!**"
+                f"\n{tool_info.description or '*No description*'}"
             )
 
     except Exception as e:

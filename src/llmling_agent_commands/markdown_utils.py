@@ -28,4 +28,4 @@ def format_table(headers: list[str], rows: list[dict[str, Any]]) -> str:
         values = [str(row.get(header, "")) for header in headers]
         data_rows.append("| " + " | ".join(values) + " |")
 
-    return "\n".join([header_row, separator_row] + data_rows)
+    return "\n".join([header_row, separator_row, *data_rows])
