@@ -198,11 +198,11 @@ class ConnectionManager:
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
         """Trigger all queued connections."""
-        results = {}
-        for talk in self._connections:
-            if isinstance(talk, Talk) and talk.queued:
-                results[talk.source.name] = await talk.trigger()
-        return results
+        return {
+            i.source.name: await i.trigger()
+            for i in self._connections
+            if isinstance(i, Talk) and i.queued
+        }
 
     async def trigger_for(
         self, target: AgentName | MessageNode[Any, Any]
@@ -250,7 +250,6 @@ class ConnectionManager:
         active_talks = [talk for talk in self._connections if talk.active]
         for talk in active_talks:
             talk.active = False
-
         try:
             yield self
         finally:

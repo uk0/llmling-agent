@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from upath import UPath
+from upathtools import to_upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.now import get_now
@@ -128,7 +129,6 @@ class TextLogProvider(StorageProvider):
         super().__init__(config)
         self.encoding = config.encoding
         self.content_template = self._load_template(config.template)
-
         # Configure Jinja env with empty string for undefined
         env = Environment(undefined=EmptyStringUndefined, enable_async=True)
         self.path_template = env.from_string(config.path)
@@ -148,8 +148,6 @@ class TextLogProvider(StorageProvider):
             template_str = self.TEMPLATES[template]  # type: ignore
         else:
             # Assume it's a path
-            from upathtools import to_upath
-
             with to_upath(template).open() as f:
                 template_str = f.read()
         return Template(template_str)
@@ -163,12 +161,8 @@ class TextLogProvider(StorageProvider):
         Returns:
             Base context dict with defaults
         """
-        return {
-            "now": get_now(),
-            "date": get_now().date(),
-            "operation": operation,
-            # All other variables will default to empty string via EmptyStringUndefined
-        }
+        # All other variables will default to empty string via EmptyStringUndefined
+        return {"now": get_now(), "date": get_now().date(), "operation": operation}
 
     async def _get_path(self, operation: str, **context: Any) -> UPath:
         """Render path template with context.
@@ -288,8 +282,8 @@ class TextLogProvider(StorageProvider):
 
     def _write(self, path: UPath):
         """Write current state to file at given path."""
+        context = {"entries": self._entries}
         try:
-            context = {"entries": self._entries}
             text = self.content_template.render(context)
             path.write_text(text, encoding=self.encoding)
         except Exception as e:

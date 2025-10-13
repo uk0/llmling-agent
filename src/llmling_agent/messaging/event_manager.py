@@ -356,27 +356,19 @@ class EventManager:
             @wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 start_time = get_now()
+                meta = {"args": args, "kwargs": kwargs, **event_metadata}
                 try:
                     result = await func(*args, **kwargs)
                     if self.enabled:
-                        meta = {
-                            "status": "success",
-                            "duration": get_now() - start_time,
-                            "args": args,
-                            "kwargs": kwargs,
-                            **event_metadata,
-                        }
+                        meta |= {"status": "success", "duration": get_now() - start_time}
                         event = EventData.create(name, content=result, metadata=meta)
                         await self.emit_event(event)
                 except Exception as e:
                     if self.enabled:
-                        meta = {
+                        meta |= {
                             "status": "error",
                             "error": str(e),
                             "duration": get_now() - start_time,
-                            "args": args,
-                            "kwargs": kwargs,
-                            **event_metadata,
                         }
                         event = EventData.create(name, content=str(e), metadata=meta)
                         await self.emit_event(event)
@@ -387,27 +379,19 @@ class EventManager:
             @wraps(func)
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 start_time = get_now()
+                meta = {"args": args, "kwargs": kwargs, **event_metadata}
                 try:
                     result = func(*args, **kwargs)
                     if self.enabled:
-                        meta = {
-                            "status": "success",
-                            "duration": get_now() - start_time,
-                            "args": args,
-                            "kwargs": kwargs,
-                            **event_metadata,
-                        }
+                        meta |= {"status": "success", "duration": get_now() - start_time}
                         event = EventData.create(name, content=result, metadata=meta)
                         self.node.task_manager.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
-                        meta = {
+                        meta |= {
                             "status": "error",
                             "error": str(e),
                             "duration": get_now() - start_time,
-                            "args": args,
-                            "kwargs": kwargs,
-                            **event_metadata,
                         }
                         event = EventData.create(name, content=str(e), metadata=meta)
                         self.node.task_manager.run_background(self.emit_event(event))
