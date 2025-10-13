@@ -54,3 +54,17 @@ class OpenLITProvider(BasePromptProvider):
         except Exception as e:
             msg = f"Failed to load prompt using name={name}: {e}"
             raise RuntimeError(msg) from e
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from llmling_agent_config.prompt_hubs import OpenLITConfig
+
+    config = OpenLITConfig()
+    prompt_hub = OpenLITProvider(config)
+
+    async def main():
+        print(await prompt_hub.get_prompt("test-b4d4"))
+
+    asyncio.run(main())

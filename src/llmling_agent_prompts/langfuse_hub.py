@@ -40,3 +40,17 @@ class LangfusePromptHub(BasePromptProvider):
         if variables:
             return prompt.compile(**variables)
         return prompt.prompt
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from llmling_agent_config.prompt_hubs import LangfuseConfig
+
+    config = LangfuseConfig(secret_key="test", public_key="")  # type: ignore
+    prompt_hub = LangfusePromptHub(config)
+
+    async def main():
+        print(await prompt_hub.get_prompt("test-b4d4"))
+
+    asyncio.run(main())

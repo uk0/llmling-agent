@@ -90,7 +90,7 @@ class PromptManager:
 
                     self.providers["langfuse"] = LangfusePromptHub(provider_config)
                 case OpenLITConfig():
-                    from llmling_agent_prompts.openlit import OpenLITProvider
+                    from llmling_agent_prompts.openlit_provider import OpenLITProvider
 
                     self.providers["openlit"] = OpenLITProvider(provider_config)
                 case PromptLayerConfig():
