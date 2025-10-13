@@ -17,9 +17,10 @@ from llmling_agent_tools.file_editor import replace_content
 
 
 if TYPE_CHECKING:
+    from pydantic_ai.messages import ModelMessage
+
     from acp.schema import ClientCapabilities
     from llmling_agent_acp.session import ACPSession
-
 
 logger = get_logger(__name__)
 
@@ -396,12 +397,15 @@ class ACPFileSystemProvider(ResourceProvider):
                     "using the specified format."
                 )
 
+            # Clean the message history to remove unprocessed tool calls
+            cleaned_messages = _clean_message_history(ctx.messages)
+
             # Create the editor agent using the same model
             editor_agent = PydanticAgent(model=ctx.model, system_prompt=sys_prompt)
 
             if mode == "edit":
                 # For structured editing, get the full response and parse the edits
-                edit = await editor_agent.run(prompt, message_history=ctx.messages)
+                edit = await editor_agent.run(prompt, message_history=cleaned_messages)
                 new_content = await _apply_structured_edits(original_content, edit.output)
             else:
                 # For overwrite mode we need to read the current content for diff purposes
@@ -412,7 +416,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 # For create/overwrite modes, stream the complete content
                 new_content_parts = []
                 async with editor_agent.run_stream(
-                    prompt, message_history=ctx.messages
+                    prompt, message_history=cleaned_messages
                 ) as response:
                     async for chunk in response.stream_text(delta=True):
                         chunk_str = str(chunk)
@@ -485,6 +489,48 @@ class ACPFileSystemProvider(ResourceProvider):
             return error_msg
         else:
             return success_msg
+
+
+def _clean_message_history(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Clean message history by removing unprocessed tool calls.
+
+    This removes ToolCallPart from the last ModelResponse if it has unprocessed
+    tool calls, but preserves all text content and reasoning.
+    """
+    if not messages:
+        return messages
+
+    # Make a copy to avoid modifying the original
+    cleaned_messages = list(messages)
+
+    # Check if the last message is a ModelResponse with unprocessed tool calls
+    if cleaned_messages:
+        # Import at runtime to avoid circular imports
+        from pydantic_ai.messages import ModelResponse, ToolCallPart
+
+        last_message = cleaned_messages[-1]
+        if isinstance(last_message, ModelResponse) and last_message.tool_calls:
+            # Create a new ModelResponse with the same content but without tool calls
+            filtered_parts = [
+                part for part in last_message.parts if not isinstance(part, ToolCallPart)
+            ]
+
+            # Only replace if we actually removed some tool calls
+            if len(filtered_parts) != len(last_message.parts):
+                # Create a new ModelResponse with filtered parts
+                cleaned_response = ModelResponse(
+                    parts=filtered_parts,
+                    usage=last_message.usage,
+                    model_name=last_message.model_name,
+                    timestamp=last_message.timestamp,
+                    provider_name=last_message.provider_name,
+                    provider_details=last_message.provider_details,
+                    provider_response_id=last_message.provider_response_id,
+                    finish_reason=last_message.finish_reason,
+                )
+                cleaned_messages[-1] = cleaned_response
+
+    return cleaned_messages
 
 
 def _build_create_prompt(path: str, description: str) -> str:
