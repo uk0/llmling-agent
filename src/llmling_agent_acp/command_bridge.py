@@ -104,10 +104,26 @@ class ACPCommandBridge:
 
         # Create output writer that sends directly to session
         output_writer = ACPOutputWriter(session)
-        cmd_context = self.command_store.create_context(
-            data=session.agent.context,
-            output_writer=output_writer,
-        )
+
+        # Check if it's an ACP-specific command
+        acp_commands = {"list-sessions", "load-session", "save-session", "delete-session"}
+
+        if command_name in acp_commands:
+            # Use ACP context for ACP commands
+            from llmling_agent_acp.acp_commands import ACPCommandContext
+
+            acp_context = ACPCommandContext(session)
+            cmd_context = self.command_store.create_context(
+                data=acp_context,
+                output_writer=output_writer,
+            )
+        else:
+            # Use regular agent context for other commands
+            cmd_context = self.command_store.create_context(
+                data=session.agent.context,
+                output_writer=output_writer,
+            )
+
         command_str = f"{command_name} {args}".strip()
         try:
             await self.command_store.execute_command(command_str, cmd_context)
