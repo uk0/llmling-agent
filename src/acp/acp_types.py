@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from acp.schema import (
@@ -76,3 +77,29 @@ ToolCallKind = Literal[
 ]
 JsonValue = Any
 MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
+
+
+@dataclass
+class SessionData:
+    """Complete session data for persistence and restoration."""
+
+    session_id: str
+    """Unique session identifier"""
+
+    model_name: str
+    """Currently chosen model"""
+
+    session_mode: str | None
+    """Currently selected session mode"""
+
+    cwd: str
+    """Working directory for the session"""
+
+    mcp_servers: list[MCPServer]
+    """MCP server configurations"""
+
+    conversation: list[SessionUpdate]
+    """Complete conversation history"""
+
+    metadata: dict[str, Any]
+    """Additional session metadata"""
