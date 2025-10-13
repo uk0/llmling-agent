@@ -45,14 +45,10 @@ class BuiltinPromptProvider(BasePromptProvider):
         # Parse template to find required variables
         ast = self.env.parse(content)
         required_vars = meta.find_undeclared_variables(ast)
-
-        if variables:
-            # Check for unknown variables
-            unknown_vars = set(variables) - required_vars
-            if unknown_vars:
-                vars_ = ", ".join(unknown_vars)
-                msg = f"Unknown variables for prompt {identifier}: {vars_}"
-                raise KeyError(msg)
+        if variables and (unknown_vars := (set(variables) - required_vars)):
+            vars_ = ", ".join(unknown_vars)
+            msg = f"Unknown variables for prompt {identifier}: {vars_}"
+            raise KeyError(msg)
 
         if required_vars:
             if not variables:
