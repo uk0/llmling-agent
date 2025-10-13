@@ -68,13 +68,33 @@ class TestClientFilesystemTools:
         return agent
 
     @pytest.fixture
-    async def fs_provider(self, acp_agent: LLMlingACPAgent):
+    async def session(self, acp_agent: LLMlingACPAgent, mock_connection):
+        """Create test session."""
+        from acp.schema import ClientCapabilities, FileSystemCapability
+        from llmling_agent_acp.session import ACPSession
+
+        fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
+        capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
+
+        return ACPSession(
+            session_id="test_session",
+            agent_pool=acp_agent.agent_pool,
+            current_agent_name="test_agent",
+            cwd="/test",
+            client=mock_connection,
+            acp_agent=acp_agent,
+            client_capabilities=capabilities,
+        )
+
+    @pytest.fixture
+    async def fs_provider(self, session):
         """Create filesystem capability provider for testing."""
+        from acp.schema import ClientCapabilities, FileSystemCapability
+
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
         return ACPFileSystemProvider(
-            agent=acp_agent,
-            session_id="test_session",
+            session=session,
             client_capabilities=capabilities,
         )
 
