@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+import logfire
+
 from llmling_agent.messaging.events import EventData
 from llmling_agent_events.base import EventSource
 
@@ -25,6 +27,7 @@ class WebhookEventSource(EventSource):
 
         self.config = config
         self.app = FastAPI()
+        logfire.instrument_fastapi(self.app)
         self._queue: asyncio.Queue[EventData] = asyncio.Queue()
 
         @self.app.post(config.path)

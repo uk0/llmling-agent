@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 import anyenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
+import logfire
 
 from llmling_agent.log import get_logger
 from llmling_agent_server.completion_helpers import stream_response
@@ -31,6 +32,7 @@ class OpenAIServer:
     def __init__(self, pool: AgentPool, *, cors: bool = True, docs: bool = True):
         self.pool = pool
         self.app = FastAPI()
+        logfire.instrument_fastapi(self.app)
 
         if cors:
             from fastapi.middleware.cors import CORSMiddleware

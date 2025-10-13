@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+import logfire
 
 from llmling_agent_server.responses_helpers import handle_request
 from llmling_agent_server.responses_models import Response, ResponseRequest  # noqa: TC001
@@ -20,6 +21,7 @@ class ResponsesServer:
     def __init__(self, pool: AgentPool):
         self.pool = pool
         self.app = FastAPI()
+        logfire.instrument_fastapi(self.app)
         self.setup_routes()
 
     def verify_api_key(
