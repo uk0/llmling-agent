@@ -226,6 +226,23 @@ class ToolManager(BaseRegistry[str, Tool]):
             tools.sort(key=lambda t: t.priority)
         return tools
 
+    async def get_tool(self, name: str) -> Tool | None:
+        """Get a specific tool by name.
+
+        First checks local tools, then uses concurrent provider fetching.
+
+        Args:
+            name: Name of the tool to retrieve
+
+        Returns:
+            Tool instance if found, None otherwise
+        """
+        # Early exit for "local" tools
+        if name in self:
+            return self[name]
+        all_tools = await self.get_tools()
+        return next((tool for tool in all_tools if tool.name == name), None)
+
     async def get_tool_names(self, state: ToolState = "all") -> set[str]:
         """Get tool names based on state."""
         return {t.name for t in await self.get_tools() if t.matches_filter(state)}
