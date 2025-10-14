@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, ImportString, SecretStr
+from pydantic_ai.models.function import FunctionModel
 from schemez import Schema
 
 
@@ -305,6 +306,21 @@ class StringModelConfig(BaseModelConfig):
         return StringModel(identifier=self.identifier)
 
 
+class FunctionModelConfig(BaseModelConfig):
+    """Configuration for function-based model references."""
+
+    type: Literal["function"] = Field(default="function", init=False)
+    """Type identifier for function model."""
+
+    function: ImportString
+    """Function identifier for the model."""
+
+    def get_model(self) -> FunctionModel:
+        from llmling_models import function_to_model
+
+        return function_to_model(self.function)
+
+
 class TestModelConfig(BaseModelConfig):
     """Configuration for test models."""
 
@@ -331,6 +347,7 @@ AnyModelConfig = Annotated[
     | CostOptimizedModelConfig
     | DelegationModelConfig
     | FallbackModelConfig
+    | FunctionModelConfig
     | ImportModelConfig
     | InputModelConfig
     | RemoteInputConfig
