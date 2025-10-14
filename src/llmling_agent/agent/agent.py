@@ -27,7 +27,6 @@ from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import (
     call_with_context,
     has_return_type,
-    validate_import,
 )
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
@@ -260,7 +259,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         # Initialize provider
         match provider:
             case "pydantic_ai":
-                validate_import("pydantic_ai", "pydantic_ai")
                 from llmling_agent_providers.pydanticai import PydanticAIProvider
 
                 if model and not isinstance(model, str):
@@ -545,7 +543,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             case AgentProvider():
                 self._provider = value
             case "pydantic_ai":
-                validate_import("pydantic_ai", "pydantic_ai")
                 from llmling_agent_providers.pydanticai import PydanticAIProvider
 
                 self._provider = PydanticAIProvider(model=model, name=name, debug=debug)
