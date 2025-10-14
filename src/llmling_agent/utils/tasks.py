@@ -61,9 +61,8 @@ class TaskManager:
             delay: Optional delay before execution
         """
         task = asyncio.create_task(coro, name=name)
-        logger.debug(
-            "Created task: %s (priority=%d, delay=%s)", task.get_name(), priority, delay
-        )
+        msg = "Created task: %s (priority=%d, delay=%s)"
+        logger.debug(msg, task.get_name(), priority, delay)
 
         def _done_callback(t: asyncio.Task[Any]):
             logger.debug("Task completed: %s", t.get_name())
@@ -76,15 +75,11 @@ class TaskManager:
 
         if delay is not None:
             execute_at = get_now() + delay
-            # Store the coroutine instead of the task
-            heapq.heappush(
-                self._task_queue, PrioritizedTask(priority, execute_at, coro, name)
-            )
-            # Start scheduler if not running
-            if not self._scheduler_task:
+            prio_task = PrioritizedTask(priority, execute_at, coro, name)
+            heapq.heappush(self._task_queue, prio_task)  # Store the coro instead of task
+            if not self._scheduler_task:  # Start scheduler if not running
                 self._scheduler_task = asyncio.create_task(self._run_scheduler())
-            # Cancel the original task since we'll run it later
-            task.cancel()
+            task.cancel()  # Cancel the original task since we'll run it later
             return task
 
         return task

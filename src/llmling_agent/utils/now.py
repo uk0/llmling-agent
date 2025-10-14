@@ -19,6 +19,4 @@ def get_now(tz_mode: TimeZoneMode = "utc") -> datetime:
         Timezone-aware datetime object
     """
     now = datetime.now(UTC)
-    if tz_mode == "local":
-        return now.astimezone()
-    return now
+    return now.astimezone() if tz_mode == "local" else now
