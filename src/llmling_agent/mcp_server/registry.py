@@ -43,58 +43,52 @@ class MCPServer:
         try:
             logger.info("Initializing MCP server: %s", self.name)
             match self.config:
-                case StdioMCPServerConfig():
-                    if not self.config.command or not self.config.args:
+                case StdioMCPServerConfig(command=command, args=args, timeout=timeout):
+                    if not command or not args:
                         msg = f"Command and args required for stdio: {self.name}"
                         raise ValueError(msg)  # noqa: TRY301
 
-                    command = shutil.which(self.config.command) or self.config.command
-                    server_params = StdioServerParameters(
-                        command=command,
-                        args=self.config.args,
-                        env=self.config.get_env_vars(),
-                    )
-                    async with stdio_client(server_params) as (read_stream, write_stream):
+                    command = shutil.which(command) or command
+                    env = self.config.get_env_vars()
+                    params = StdioServerParameters(command=command, args=args, env=env)
+                    async with stdio_client(params) as (read_stream, write_stream):
+                        td = timedelta(seconds=timeout) if timeout else None
                         self.session = ClientSession(
                             read_stream,
                             write_stream,
-                            read_timeout_seconds=timedelta(seconds=self.config.timeout)
-                            if self.config.timeout
-                            else None,
+                            read_timeout_seconds=td,
                         )
                         await self.session.initialize()
 
-                case SSEMCPServerConfig():
-                    if not self.config.url:
+                case SSEMCPServerConfig(url=url, timeout=timeout):
+                    if not url:
                         msg = f"URL required for SSE transport: {self.name}"
                         raise ValueError(msg)  # noqa: TRY301
 
-                    async with sse_client(self.config.url) as (read_stream, write_stream):
+                    async with sse_client(url) as (read_stream, write_stream):
+                        td = timedelta(seconds=timeout) if timeout else None
                         self.session = ClientSession(
                             read_stream,
                             write_stream,
-                            read_timeout_seconds=timedelta(seconds=self.config.timeout)
-                            if self.config.timeout
-                            else None,
+                            read_timeout_seconds=td,
                         )
                         await self.session.initialize()
 
-                case StreamableHTTPMCPServerConfig():
-                    if not self.config.url:
+                case StreamableHTTPMCPServerConfig(url=url, timeout=timeout):
+                    if not url:
                         msg = f"URL required for SSE transport: {self.name}"
                         raise ValueError(msg)  # noqa: TRY301
 
-                    async with streamablehttp_client(self.config.url) as (
+                    async with streamablehttp_client(url) as (
                         read_stream,
                         write_stream,
                         _callback,
                     ):
+                        td = timedelta(seconds=timeout) if timeout else None
                         self.session = ClientSession(
                             read_stream,
                             write_stream,
-                            read_timeout_seconds=timedelta(seconds=self.config.timeout)
-                            if self.config.timeout
-                            else None,
+                            read_timeout_seconds=td,
                         )
                         await self.session.initialize()
 

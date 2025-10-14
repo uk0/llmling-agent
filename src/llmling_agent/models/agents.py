@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
@@ -175,10 +176,8 @@ class AgentConfig(NodeConfig):
     @classmethod
     def handle_model_types(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Convert model inputs to appropriate format."""
-        model = data.get("model")
-        match model:
-            case str():
-                data["model"] = {"type": "string", "identifier": model}
+        if isinstance((model := data.get("model")), str):
+            data["model"] = {"type": "string", "identifier": model}
         return data
 
     async def get_toolsets(self) -> list[ResourceProvider]:
@@ -263,52 +262,46 @@ class AgentConfig(NodeConfig):
                         messages=[PromptMessage(role="system", content=prompt)],
                     )
                     prompts.append(static_prompt)
-                case StaticPromptConfig():
+                case StaticPromptConfig(content=content):
                     # Convert StaticPromptConfig to StaticPrompt
                     static_prompt = StaticPrompt(
                         name="system",
                         description="System prompt",
-                        messages=[PromptMessage(role="system", content=prompt.content)],
+                        messages=[PromptMessage(role="system", content=content)],
                     )
                     prompts.append(static_prompt)
-                case FilePromptConfig():
+                case FilePromptConfig(path=path):
                     # Load and convert file-based prompt
-                    from pathlib import Path
 
-                    template_path = Path(prompt.path)
+                    template_path = Path(path)
                     if not template_path.is_absolute() and self.config_file_path:
                         base_path = Path(self.config_file_path).parent
-                        template_path = base_path / prompt.path
+                        template_path = base_path / path
 
                     template_content = template_path.read_text()
                     # Create a template-based prompt
                     # (for now as StaticPrompt with placeholder)
                     static_prompt = StaticPrompt(
                         name="system",
-                        description=f"File prompt: {prompt.path}",
+                        description=f"File prompt: {path}",
                         messages=[PromptMessage(role="system", content=template_content)],
                     )
                     prompts.append(static_prompt)
-                case LibraryPromptConfig():
+                case LibraryPromptConfig(reference=reference):
                     # Create placeholder for library prompts (resolved by manifest)
+                    msg = PromptMessage(role="system", content=f"[LIBRARY:{reference}]")
                     static_prompt = StaticPrompt(
                         name="system",
-                        description=f"Library: {prompt.reference}",
-                        messages=[
-                            PromptMessage(
-                                role="system",
-                                content=f"[LIBRARY:{prompt.reference}]",
-                            )
-                        ],
+                        description=f"Library: {reference}",
+                        messages=[msg],
                     )
                     prompts.append(static_prompt)
-                case FunctionPromptConfig():
+                case FunctionPromptConfig(arguments=arguments, function=function):
                     # Import and call the function to get prompt content
-                    func = prompt.function
-                    content = func(**prompt.arguments)
+                    content = function(**arguments)
                     static_prompt = StaticPrompt(
                         name="system",
-                        description=f"Function prompt: {prompt.function}",
+                        description=f"Function prompt: {function}",
                         messages=[PromptMessage(role="system", content=content)],
                     )
                     prompts.append(static_prompt)
@@ -364,15 +357,10 @@ class AgentConfig(NodeConfig):
         rendered_prompts: list[str] = []
         for prompt in self.system_prompts:
             match prompt:
-                case str():
-                    rendered_prompts.append(render_prompt(prompt, {"agent": context}))
-                case StaticPromptConfig():
-                    rendered_prompts.append(
-                        render_prompt(prompt.content, {"agent": context})
-                    )
+                case (str() as content) | StaticPromptConfig(content=content):
+                    rendered_prompts.append(render_prompt(content, {"agent": context}))
                 case FilePromptConfig():
                     # Load and render Jinja template from file
-                    from pathlib import Path
 
                     template_path = Path(prompt.path)
                     if not template_path.is_absolute() and self.config_file_path:

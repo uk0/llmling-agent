@@ -152,21 +152,14 @@ class MCPManager(ResourceProvider):
             prompts: list[BaseContent | str] = []
             for mcp_msg in params.messages:
                 match mcp_msg.content:
-                    case types.TextContent() as text_content:
-                        prompts.append(text_content.text)
-                    case types.ImageContent() as image_content:
-                        # Convert to our ImageBase64Content for actual processing
-                        our_image = ImageBase64Content(
-                            data=image_content.data,
-                            mime_type=image_content.mimeType,
-                        )
+                    case types.TextContent(text=text):
+                        prompts.append(text)
+                    case types.ImageContent(data=data, mimeType=mime_type):
+                        our_image = ImageBase64Content(data=data, mime_type=mime_type)
                         prompts.append(our_image)
-                    case types.AudioContent() as audio_content:
-                        # Convert to our AudioBase64Content for actual processing
-                        our_audio = AudioBase64Content(
-                            data=audio_content.data,
-                            format=audio_content.mimeType.removeprefix("audio/"),
-                        )
+                    case types.AudioContent(data=data, mimeType=mime_type):
+                        fmt = mime_type.removeprefix("audio/")
+                        our_audio = AudioBase64Content(data=data, format=fmt)
                         prompts.append(our_audio)
 
             # Extract model from preferences
@@ -224,7 +217,7 @@ class MCPManager(ResourceProvider):
             return
         env = config.get_env_vars()
         match config:
-            case StdioMCPServerConfig():
+            case StdioMCPServerConfig(command=command, args=args):
                 client = MCPClient(
                     transport_mode="stdio",
                     elicitation_callback=self._elicitation_callback,
@@ -233,9 +226,9 @@ class MCPManager(ResourceProvider):
                     accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
-                await client.connect(config.command, args=config.args, env=env)
-                client_id = f"{config.command}_{' '.join(config.args)}"
-            case SSEMCPServerConfig():
+                await client.connect(command, args=args, env=env)
+                client_id = f"{command}_{' '.join(args)}"
+            case SSEMCPServerConfig(url=url):
                 client = MCPClient(
                     transport_mode="sse",
                     elicitation_callback=self._elicitation_callback,
@@ -244,9 +237,9 @@ class MCPManager(ResourceProvider):
                     accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
-                await client.connect("", [], url=config.url, env=env)
-                client_id = f"sse_{config.url}"
-            case StreamableHTTPMCPServerConfig():
+                await client.connect("", [], url=url, env=env)
+                client_id = f"sse_{url}"
+            case StreamableHTTPMCPServerConfig(url=url):
                 client = MCPClient(
                     transport_mode="streamable-http",
                     elicitation_callback=self._elicitation_callback,
@@ -255,8 +248,8 @@ class MCPManager(ResourceProvider):
                     accessible_roots=self._accessible_roots,
                 )
                 client = await self.exit_stack.enter_async_context(client)
-                await client.connect("", [], url=config.url, env=env)
-                client_id = f"streamable_http_{config.url}"
+                await client.connect("", [], url=url, env=env)
+                client_id = f"streamable_http_{url}"
         self.clients[client_id] = client
 
     async def get_tools(self) -> list[Tool]:

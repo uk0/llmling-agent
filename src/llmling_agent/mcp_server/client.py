@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import AsyncExitStack, suppress
 import shutil
-from typing import TYPE_CHECKING, Any, Self, TextIO
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.log import get_logger
 
@@ -54,7 +54,6 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
         self._available_tools: list[Tool] = []
-        self._old_stdout: TextIO | None = None
         self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
