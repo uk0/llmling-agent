@@ -123,9 +123,3 @@ class ObservabilityConfig(Schema):
 
     provider: ObservabilityProviderConfig | None = None
     """Single observability provider configuration."""
-
-    instrument_libraries: list[str] | None = None
-    """Which libraries should be imported before initialization.
-
-    By default, all libraries used in the AgentsManifest are instrumented.
-    """
