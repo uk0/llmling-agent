@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import Field, ImportString, SecretStr
 from pydantic_ai.models.function import FunctionModel
 from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from llmling_models import CostOptimizedMultiModel, DelegationMultiModel, InputModel
+    from llmling_models.augmented import AugmentedModel
+    from pydantic_ai.models.fallback import FallbackModel
 
 
 class BaseModelConfig(Schema):
@@ -44,7 +50,7 @@ class AugmentedModelConfig(BaseModelConfig):
     post_prompt: PrePostPromptConfig | None = None
     """Optional configuration for prompt postprocessing."""
 
-    def get_model(self) -> Any:
+    def get_model(self) -> AugmentedModel:
         from llmling_models.augmented import AugmentedModel
 
         return AugmentedModel(
@@ -69,7 +75,7 @@ class CostOptimizedModelConfig(BaseModelConfig):
     strategy: Literal["cheapest_possible", "best_within_budget"] = "best_within_budget"
     """Strategy for model selection based on cost."""
 
-    def get_model(self) -> Any:
+    def get_model(self) -> CostOptimizedMultiModel:
         from llmling_models.multimodels import CostOptimizedMultiModel
 
         converted_models = [
@@ -100,7 +106,7 @@ class DelegationModelConfig(BaseModelConfig):
     model_descriptions: dict[str, str] | None = None
     """Optional descriptions of each model for selection purposes."""
 
-    def get_model(self) -> Any:
+    def get_model(self) -> DelegationMultiModel:
         from llmling_models.multimodels import DelegationMultiModel
 
         # Convert selector if it's a config
@@ -131,7 +137,7 @@ class FallbackModelConfig(BaseModelConfig):
     models: list[str | BaseModelConfig] = Field(min_length=1)
     """Ordered list of models to try in sequence."""
 
-    def get_model(self) -> Any:
+    def get_model(self) -> FallbackModel:
         from pydantic_ai.models.fallback import FallbackModel
 
         # Convert nested configs to models
@@ -179,7 +185,7 @@ class InputModelConfig(BaseModelConfig):
     )
     """Handler for processing user input."""
 
-    def get_model(self) -> Any:
+    def get_model(self) -> InputModel:
         from llmling_models.inputmodel import InputModel
 
         return InputModel(
