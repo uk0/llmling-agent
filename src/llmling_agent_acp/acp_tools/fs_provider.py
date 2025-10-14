@@ -274,10 +274,7 @@ class ACPFileSystemProvider(ResourceProvider):
             logger.warning("Failed to send pending update: %s", e)
 
         try:  # Read current file content
-            original_content = await self.session.requests.read_text_file(
-                path=resolved_path
-            )
-
+            original_content = await self.session.requests.read_text_file(resolved_path)
             try:  # Apply smart content replacement
                 new_content = replace_content(
                     original_content, old_string, new_string, replace_all
@@ -295,10 +292,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 return error_msg
 
             # Write the new content
-            await self.session.requests.write_text_file(
-                path=resolved_path,
-                content=new_content,
-            )
+            await self.session.requests.write_text_file(resolved_path, new_content)
             success_msg = f"Successfully edited {Path(path).name}: {description}"
             diff_lines = get_changed_lines(original_content, new_content, resolved_path)
             if lines_changed := len(diff_lines) > 0:
@@ -369,9 +363,7 @@ class ACPFileSystemProvider(ResourceProvider):
             logger.warning("Failed to send pending update: %s", e)
 
         try:
-            # Handle different modes
-            if mode == "create":
-                # For create mode, don't read existing file
+            if mode == "create":  # For create mode, don't read existing file
                 original_content = ""
                 prompt = _build_create_prompt(path, display_description)
                 sys_prompt = (
@@ -385,10 +377,9 @@ class ACPFileSystemProvider(ResourceProvider):
                 sys_prompt = (
                     "You are a code editor. Output ONLY the complete new file content."
                 )
-            else:
-                # For edit mode, use structured editing approach
+            else:  # For edit mode, use structured editing approach
                 original_content = await self.session.requests.read_text_file(
-                    path=resolved_path
+                    resolved_path
                 )
                 prompt = _build_edit_prompt(path, display_description)
                 sys_prompt = (
@@ -410,7 +401,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
                     original_content = await self.session.requests.read_text_file(
-                        path=resolved_path
+                        resolved_path
                     )
                 # For create/overwrite modes, stream the complete content
                 new_content_parts = []
@@ -449,12 +440,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 return error_msg
 
             # Write the new content to file
-            # Write the final content
-            await self.session.requests.write_text_file(
-                resolved_path,
-                content=new_content,
-            )
-
+            await self.session.requests.write_text_file(resolved_path, new_content)
             # Calculate some stats
             original_lines = len(original_content.splitlines()) if original_content else 0
             new_lines = len(new_content.splitlines())
@@ -625,13 +611,7 @@ async def _apply_structured_edits(original_content: str, edits_response: str) ->
 
 
 def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
-    diff = list(
-        difflib.unified_diff(
-            original_content.splitlines(keepends=True),
-            new_content.splitlines(keepends=True),
-            fromfile=path,
-            tofile=path,
-            lineterm="",
-        )
-    )
+    old = original_content.splitlines(keepends=True)
+    new = new_content.splitlines(keepends=True)
+    diff = list(difflib.unified_diff(old, new, fromfile=path, tofile=path, lineterm=""))
     return [line for line in diff if line.startswith(("+", "-"))]

@@ -119,14 +119,12 @@ class StorageManager:
         )
 
         match provider_config:
-            case SQLStorageConfig():
+            case SQLStorageConfig(url=url, pool_size=pool_size):
                 from sqlmodel import create_engine
 
                 from llmling_agent_storage.sql_provider import SQLModelProvider
 
-                engine = create_engine(
-                    provider_config.url, pool_size=provider_config.pool_size
-                )
+                engine = create_engine(url, pool_size=pool_size)
                 return SQLModelProvider(provider_config, engine)
             case FileStorageConfig():
                 from llmling_agent_storage.file_provider import FileProvider

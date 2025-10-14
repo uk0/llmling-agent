@@ -382,8 +382,7 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
             if output_response.truncated:
                 result += "\n(output truncated)"
         except Exception as e:  # noqa: BLE001
-            # Send failed update
-            try:
+            try:  # Send failed update
                 await self.session.notifications.tool_call_progress(
                     tool_call_id=ctx.tool_call_id,
                     status="failed",
