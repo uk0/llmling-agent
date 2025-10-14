@@ -20,6 +20,7 @@ from llmling.utils.importing import import_callable, import_class
 from pydantic import Field, model_validator
 from schemez import InlineSchemaDef
 from toprompt import render_prompt
+from upath import UPath
 
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
@@ -359,27 +360,24 @@ class AgentConfig(NodeConfig):
             match prompt:
                 case (str() as content) | StaticPromptConfig(content=content):
                     rendered_prompts.append(render_prompt(content, {"agent": context}))
-                case FilePromptConfig():
+                case FilePromptConfig(path=path, variables=variables):
                     # Load and render Jinja template from file
 
-                    template_path = Path(prompt.path)
+                    template_path = Path(path)
                     if not template_path.is_absolute() and self.config_file_path:
                         base_path = Path(self.config_file_path).parent
-                        template_path = base_path / prompt.path
+                        template_path = base_path / path
 
                     template_content = template_path.read_text()
-                    template_context = {"agent": context, **prompt.variables}
-                    rendered_prompts.append(
-                        render_prompt(template_content, template_context)
-                    )
-                case LibraryPromptConfig():
+                    template_ctx = {"agent": context, **variables}
+                    rendered_prompts.append(render_prompt(template_content, template_ctx))
+                case LibraryPromptConfig(reference=reference):
                     # This will be handled by the manifest's get_agent method
                     # For now, just add a placeholder
-                    rendered_prompts.append(f"[LIBRARY:{prompt.reference}]")
-                case FunctionPromptConfig():
+                    rendered_prompts.append(f"[LIBRARY:{reference}]")
+                case FunctionPromptConfig(function=function, arguments=arguments):
                     # Import and call the function to get prompt content
-                    func = prompt.function
-                    content = func(**prompt.arguments)
+                    content = function(**arguments)
                     rendered_prompts.append(render_prompt(content, {"agent": context}))
 
         return rendered_prompts
@@ -424,8 +422,6 @@ class AgentConfig(NodeConfig):
     @staticmethod
     def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
         """Resolve environment path from config store or relative path."""
-        from upath import UPath
-
         try:
             config_store = ConfigStore()
             return config_store.get_config(env)

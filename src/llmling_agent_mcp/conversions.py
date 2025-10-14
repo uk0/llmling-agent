@@ -61,18 +61,10 @@ def to_content(
     match content:
         case str():
             return types.TextContent(type="text", text=content)
-        case AudioBase64Content():
-            return types.AudioContent(
-                type="audio",
-                data=content.data,
-                mimeType=content.mime_type,
-            )
-        case ImageBase64Content():
-            return types.ImageContent(
-                type="image",
-                data=content.data,
-                mimeType=content.mime_type,
-            )
+        case AudioBase64Content(data=data, mime_type=mime_type):
+            return types.AudioContent(type="audio", data=data, mimeType=mime_type)
+        case ImageBase64Content(data=data, mime_type=mime_type):
+            return types.ImageContent(type="image", data=data, mimeType=mime_type)
         case _:
             msg = f"Unsupported content type: {type(content)}"
             raise ValueError(msg)

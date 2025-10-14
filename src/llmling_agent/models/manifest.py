@@ -389,42 +389,35 @@ class AgentsManifest(Schema):
         sys_prompts: list[str] = []
         for prompt in config.system_prompts:
             match prompt:
-                case str():
-                    sys_prompts.append(prompt)
-                case StaticPromptConfig():
-                    sys_prompts.append(prompt.content)
-                case FilePromptConfig():
-                    # Load template from file
-                    template_path = Path(prompt.path)
+                case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
+                    sys_prompts.append(sys_prompt)
+                case FilePromptConfig(path=path, variables=variables):
+                    template_path = Path(path)  # Load template from file
                     if not template_path.is_absolute() and config.config_file_path:
-                        template_path = Path(config.config_file_path).parent / prompt.path
+                        template_path = Path(config.config_file_path).parent / path
 
                     template_content = template_path.read_text()
-                    # Apply variables if any
-                    if prompt.variables:
+                    if variables:  # Apply variables if any
                         from jinja2 import Template
 
                         template = Template(template_content)
-                        content = template.render(**prompt.variables)
+                        content = template.render(**variables)
                     else:
                         content = template_content
                     sys_prompts.append(content)
-                case LibraryPromptConfig():
-                    # Load from library
-                    try:
-                        content = self.prompt_manager.get_sync(prompt.reference)
+                case LibraryPromptConfig(reference=reference):
+                    try:  # Load from library
+                        content = self.prompt_manager.get_sync(reference)
                         sys_prompts.append(content)
                     except Exception as e:
                         msg = (
-                            f"Failed to load library prompt {prompt.reference!r} "
+                            f"Failed to load library prompt {reference!r} "
                             f"for agent {name}"
                         )
                         logger.exception(msg)
                         raise ValueError(msg) from e
-                case FunctionPromptConfig():
-                    # Call function to get prompt content
-                    func = prompt.function
-                    content = func(**prompt.arguments)
+                case FunctionPromptConfig(function=function, arguments=arguments):
+                    content = function(**arguments)  # Call function to get prompt content
                     sys_prompts.append(content)
         # Create agent with runtime and context
         agent = Agent[Any](

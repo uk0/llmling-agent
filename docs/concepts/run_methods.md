@@ -98,10 +98,10 @@ TeamRun provides an additional `execute_iter()` method:
 ```python
 async for item in team_run.execute_iter("analyze"):
     match item:
-        case Talk():
-            print(f"Connection: {item.source.name} -> {item.targets[0].name}")
-        case AgentResponse():
-            print(f"Response from {item.agent_name}: {item.message.content}")
+        case Talk(source=source, targets=targets):
+            print(f"Connection: {source.name} -> {targets[0].name}")
+        case AgentResponse(agent_name=agent_name, message=message):
+            print(f"Response from {agent_name}: {message.content}")
 ```
 
 ## Summary

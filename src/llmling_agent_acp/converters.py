@@ -84,28 +84,15 @@ def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
         MCPServerConfig instance
     """
     match acp_server:
-        case StdioMcpServer():
-            return StdioMCPServerConfig(
-                name=acp_server.name,
-                command=acp_server.command,
-                args=list(acp_server.args),
-                env={var.name: var.value for var in acp_server.env},
-            )
-
-        case SseMcpServer():
-            return SSEMCPServerConfig(
-                name=acp_server.name,
-                url=acp_server.url,
-                headers={h.name: h.value for h in acp_server.headers},
-            )
-
-        case HttpMcpServer():
-            return StreamableHTTPMCPServerConfig(
-                name=acp_server.name,
-                url=acp_server.url,
-                headers={h.name: h.value for h in acp_server.headers},
-            )
-
+        case StdioMcpServer(name=name, command=cmd, args=args, env=env_vars):
+            env = {var.name: var.value for var in env_vars}
+            return StdioMCPServerConfig(name=name, command=cmd, args=list(args), env=env)
+        case SseMcpServer(name=name, url=url, headers=headers):
+            h = {h.name: h.value for h in headers}
+            return SSEMCPServerConfig(name=name, url=url, headers=h)
+        case HttpMcpServer(name=name, url=url, headers=headers):
+            h = {h.name: h.value for h in acp_server.headers}
+            return StreamableHTTPMCPServerConfig(name=name, url=url, headers=h)
         case _:
             msg = f"Unsupported MCP server type: {type(acp_server)}"
             raise ValueError(msg)
@@ -146,44 +133,39 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
 
     for block in blocks:
         match block:
-            case TextContentBlock():
-                content.append(block.text)
+            case TextContentBlock(text=text):
+                content.append(text)
 
-            case ImageContentBlock():
-                content.append(
-                    ImageBase64Content(data=block.data, mime_type=block.mime_type)
-                )
-
-            case AudioContentBlock():
+            case ImageContentBlock(data=data, mime_type=mime_type):
+                content.append(ImageBase64Content(data=data, mime_type=mime_type))
+            case AudioContentBlock(data=data, mime_type=mime_type):
                 # Audio always has data
-                format_type = block.mime_type.split("/")[-1] if block.mime_type else "mp3"
-                content.append(AudioBase64Content(data=block.data, format=format_type))
+                format_type = mime_type.split("/")[-1] if mime_type else "mp3"
+                content.append(AudioBase64Content(data=data, format=format_type))
 
-            case ResourceContentBlock():
+            case ResourceContentBlock(name=name, description=description, uri=uri):
                 # Resource links - convert to text for now
-                parts = [f"Resource: {block.name}"]
-                if block.description:
-                    parts.append(f"Description: {block.description}")
-                parts.append(f"URI: {block.uri}")
+                parts = [f"Resource: {name}"]
+                if description:
+                    parts.append(f"Description: {description}")
+                parts.append(f"URI: {uri}")
                 content.append("\n".join(parts))
 
-            case ResourceLink():
+            case ResourceLink(uri=uri):
                 # Format as markdown-style link
-                formatted_uri = format_uri_as_link(block.uri)
+                formatted_uri = format_uri_as_link(uri)
                 content.append(formatted_uri)
 
-            case EmbeddedResourceContentBlock():
-                match block.resource:
-                    case TextResourceContents():
-                        uri = block.resource.uri
-                        text = block.resource.text
+            case EmbeddedResourceContentBlock(resource=resource):
+                match resource:
+                    case TextResourceContents(uri=uri, text=text):
                         formatted_uri = format_uri_as_link(uri)
                         content.append(formatted_uri)
                         context_block = f'\n<context ref="{uri}">\n{text}\n</context>'
                         content.append(context_block)
                     case _:
                         # Binary resource - just describe it with formatted URI
-                        formatted_uri = format_uri_as_link(block.resource.uri)
+                        formatted_uri = format_uri_as_link(resource.uri)
                         content.append(f"Binary Resource: {formatted_uri}")
 
     return content

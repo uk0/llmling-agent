@@ -31,24 +31,22 @@ def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR
         In these cases, None is returned and a warning is emitted.
     """
     match content:
-        case own_content.ImageURLContent():
-            return ImageUrl(url=content.url)
+        case own_content.ImageURLContent(url=url):
+            return ImageUrl(url=url)
 
-        case own_content.ImageBase64Content():
-            binary_data = base64.b64decode(content.data)
-            typ = content.mime_type or "image/jpeg"
-            return BinaryContent(data=binary_data, media_type=typ)
-        case own_content.PDFURLContent():
-            return DocumentUrl(url=content.url)
-        case own_content.PDFBase64Content():
-            binary_data = base64.b64decode(content.data)
+        case own_content.ImageBase64Content(data=data, mime_type=mime_type):
+            binary_data = base64.b64decode(data)
+            return BinaryContent(data=binary_data, media_type=mime_type or "image/jpeg")
+        case own_content.PDFURLContent(url=url):
+            return DocumentUrl(url=url)
+        case own_content.PDFBase64Content(data=data):
+            binary_data = base64.b64decode(data)
             return BinaryContent(binary_data, media_type="application/pdf")
-        case own_content.AudioURLContent():
-            return AudioUrl(url=content.url)
-        case own_content.AudioBase64Content():
-            binary_data = base64.b64decode(content.data)
-            typ = f"audio/{content.format or 'mp3'}"
-            return BinaryContent(data=binary_data, media_type=typ)
+        case own_content.AudioURLContent(url=url):
+            return AudioUrl(url=url)
+        case own_content.AudioBase64Content(data=data, format=format):
+            binary_data = base64.b64decode(data)
+            return BinaryContent(data=binary_data, media_type=f"audio/{format or 'mp3'}")
         case own_content.VideoURLContent():
             msg = "Video content not supported by pydantic-ai"
             warnings.warn(msg, UserWarning, stacklevel=2)
