@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
+from llmling_models.utils import without_unprocessed_tool_calls
 from pydantic_ai import Agent as PydanticAgent, ModelRetry, RunContext  # noqa: TC002
 
 from acp.schema import ToolCallLocation
@@ -17,8 +18,6 @@ from llmling_agent_tools.file_editor import replace_content
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.messages import ModelMessage
-
     from acp.schema import ClientCapabilities
     from llmling_agent_acp.session import ACPSession
 
@@ -398,7 +397,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 )
 
             # Clean the message history to remove unprocessed tool calls
-            cleaned_messages = _clean_message_history(ctx.messages)
+            cleaned_messages = without_unprocessed_tool_calls(ctx.messages)
 
             # Create the editor agent using the same model
             editor_agent = PydanticAgent(model=ctx.model, system_prompt=sys_prompt)
@@ -489,43 +488,6 @@ class ACPFileSystemProvider(ResourceProvider):
             return error_msg
         else:
             return success_msg
-
-
-def _clean_message_history(messages: list[ModelMessage]) -> list[ModelMessage]:
-    """Clean message history by removing unprocessed tool calls.
-
-    This removes ToolCallPart from the last ModelResponse if it has unprocessed
-    tool calls, but preserves all text content and reasoning.
-    """
-    cleaned_messages = list(messages)  # Make a copy to avoid modifying the original
-    # Check if the last message is a ModelResponse with unprocessed tool calls
-    if cleaned_messages:
-        # Import at runtime to avoid circular imports
-        from pydantic_ai.messages import ModelResponse, ToolCallPart
-
-        last_message = cleaned_messages[-1]
-        if isinstance(last_message, ModelResponse) and last_message.tool_calls:
-            # Create a new ModelResponse with the same content but without tool calls
-            filtered_parts = [
-                part for part in last_message.parts if not isinstance(part, ToolCallPart)
-            ]
-
-            # Only replace if we actually removed some tool calls
-            if len(filtered_parts) != len(last_message.parts):
-                # Create a new ModelResponse with filtered parts
-                cleaned_response = ModelResponse(
-                    parts=filtered_parts,
-                    usage=last_message.usage,
-                    model_name=last_message.model_name,
-                    timestamp=last_message.timestamp,
-                    provider_name=last_message.provider_name,
-                    provider_details=last_message.provider_details,
-                    provider_response_id=last_message.provider_response_id,
-                    finish_reason=last_message.finish_reason,
-                )
-                cleaned_messages[-1] = cleaned_response
-
-    return cleaned_messages
 
 
 def _build_create_prompt(path: str, description: str) -> str:
