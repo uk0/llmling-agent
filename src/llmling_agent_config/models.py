@@ -189,21 +189,6 @@ class InputModelConfig(BaseModelConfig):
         )
 
 
-class LLMAdapterConfig(BaseModelConfig):
-    """Configuration for LLM library adapter."""
-
-    type: Literal["llm"] = Field(default="llm", init=False)
-    """Type identifier for LLM adapter."""
-
-    model_name: str
-    """Name of the model in the LLM library."""
-
-    def get_model(self) -> Any:
-        from llmling_models.adapters.llm_adapter import LLMAdapter
-
-        return LLMAdapter(model=self.model_name)
-
-
 class RemoteInputConfig(BaseModelConfig):
     """Configuration for remote human input."""
 
@@ -348,7 +333,6 @@ AnyModelConfig = Annotated[
     | FallbackModelConfig
     | ImportModelConfig
     | InputModelConfig
-    | LLMAdapterConfig
     | RemoteInputConfig
     | RemoteProxyConfig
     | TokenOptimizedModelConfig
