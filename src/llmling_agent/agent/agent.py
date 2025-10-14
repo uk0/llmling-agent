@@ -79,6 +79,42 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 
 
+class SimpleStreamResponse:
+    """Simple streaming response that can replay collected chunks."""
+
+    def __init__(self, chunks: list[str], final_result=None, usage=None, model_name=None):
+        self.chunks = chunks
+        self.final_result = final_result
+        self._usage = usage
+        self.model_name = model_name
+        self.formatted_content = "".join(chunks)
+
+    async def stream_output(self):
+        """Stream the collected chunks for backward compatibility."""
+        for chunk in self.chunks:
+            yield chunk
+
+    async def stream_text(self):
+        """Stream text chunks (same as stream_output for simplicity)."""
+        async for chunk in self.stream_output():
+            yield chunk
+
+    def usage(self):
+        """Return usage information."""
+        return self._usage
+
+    def new_messages(self):
+        """Return new messages from the final result."""
+        if self.final_result and hasattr(self.final_result, "new_messages"):
+            return self.final_result.new_messages()
+        return []
+
+    @property
+    def is_complete(self) -> bool:
+        """Always complete since we collected all chunks."""
+        return True
+
+
 class AgentKwargs(TypedDict, total=False):
     """Keyword arguments for configuring an Agent instance."""
 
@@ -805,41 +841,67 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            async with self._provider.stream_response(
+            # Collect chunks and metadata from events
+            chunks = []
+            final_result = None
+            usage = None
+            model_name = None
+
+            # Process events directly from provider
+            async for event in self._provider.stream_events(
                 *prompts,
                 message_id=message_id,
                 message_history=message_history,
                 result_type=result_type,
                 model=model,
-                store_history=store_history,
                 tools=tools,
                 usage_limits=usage_limits,
                 system_prompt=sys_prompt,
-            ) as stream:
-                yield stream
-                usage = stream.usage()
-                cost_info = None
-                model_name = stream.model_name  # type: ignore
-                if model_name:
-                    cost_info = await TokenCost.from_usage(usage, model_name)
-                response_msg = ChatMessage[TResult](
-                    content=cast(TResult, stream.formatted_content),  # type: ignore
-                    role="assistant",
-                    name=self.name,
-                    model=model_name,
-                    message_id=message_id,
-                    conversation_id=user_msg.conversation_id,
-                    cost_info=cost_info,
-                    response_time=time.perf_counter() - start_time,
-                    # provider_extra=stream.provider_extra or {},
-                )
-                self.message_sent.emit(response_msg)
-                if store_history:
-                    self.conversation.add_chat_messages([user_msg, response_msg])
-                await self.connections.route_message(
-                    response_msg,
-                    wait=wait_for_connections,
-                )
+            ):
+                from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+                from pydantic_ai.run import AgentRunResultEvent
+
+                match event:
+                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                        chunks.append(delta)
+                        self.chunk_streamed.emit(delta, message_id)
+                    case AgentRunResultEvent(result=result):
+                        final_result = result
+                        usage = result.usage() if hasattr(result, "usage") else None
+                        model_name = getattr(result, "model_name", None)
+
+            # Create simple response object for backward compatibility
+            stream = SimpleStreamResponse(
+                chunks=chunks,
+                final_result=final_result,
+                usage=usage,
+                model_name=model_name,
+            )
+
+            yield stream
+
+            # Post-processing (same as before)
+            cost_info = None
+            if model_name and usage:
+                cost_info = await TokenCost.from_usage(usage, model_name)
+            response_msg = ChatMessage[TResult](
+                content=cast(TResult, stream.formatted_content),  # type: ignore
+                role="assistant",
+                name=self.name,
+                model=model_name,
+                message_id=message_id,
+                conversation_id=user_msg.conversation_id,
+                cost_info=cost_info,
+                response_time=time.perf_counter() - start_time,
+                # provider_extra=stream.provider_extra or {},
+            )
+            self.message_sent.emit(response_msg)
+            if store_history:
+                self.conversation.add_chat_messages([user_msg, response_msg])
+            await self.connections.route_message(
+                response_msg,
+                wait=wait_for_connections,
+            )
 
         except Exception as e:
             logger.exception("Agent stream failed")
@@ -1353,8 +1415,11 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
 
 if __name__ == "__main__":
-    # import logging
+    import logging
 
+    logfire.configure()
+    logfire.instrument_pydantic_ai()
+    logging.basicConfig(handlers=[logfire.LogfireLoggingHandler()])
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
 

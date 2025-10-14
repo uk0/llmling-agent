@@ -12,7 +12,14 @@ from llmling_models import AllModels, infer_model
 import logfire
 from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._function_schema
-from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import (
+    FunctionToolCallEvent,
+    ModelResponse,
+    PartDeltaEvent,
+    PartStartEvent,
+    TextPartDelta,
+    ToolCallPart,
+)
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.result import StreamedRunResult
 from pydantic_ai.run import AgentRun
@@ -32,7 +39,6 @@ from llmling_agent.utils.inspection import execute, has_argument_type
 from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
-    format_part,
     get_tool_calls,
     to_model_request,
 )
@@ -41,7 +47,9 @@ from llmling_agent_providers.pydanticai.utils import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
 
+    from pydantic_ai import AgentStreamEvent
     from pydantic_ai.agent import AgentRunResult
+    from pydantic_ai.run import AgentRunResultEvent
 
     from llmling_agent.common_types import EndStrategy, ModelType
     from llmling_agent.messaging.messages import ChatMessage
@@ -444,9 +452,27 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
 
         # Convert prompts to pydantic-ai format
         converted_prompts = await convert_prompts_to_user_content(prompts)
-
         # Convert all messages to pydantic-ai format
         model_messages = [to_model_request(m) for m in message_history]
+
+        tool_dict = {i.name: i for i in tools or []}
+
+        async def event_handler(ctx: RunContext, stream):
+            """Handle events from pydantic-ai stream."""
+            async for event in stream:
+                match event:
+                    case (
+                        PartStartEvent(part=ToolCallPart() as tool_part)
+                        | FunctionToolCallEvent(part=tool_part)
+                    ):
+                        # Tool call started - emit tool call info immediately
+                        call_info = self._create_tool_call_info(
+                            tool_part, tool_dict, message_id
+                        )
+                        self.tool_used.emit(call_info)
+
+            # Stream is complete - emit empty chunk to signal completion
+            self.chunk_streamed.emit("", message_id)
 
         async with agent.run_stream(
             converted_prompts,
@@ -456,71 +482,177 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             output_type=result_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=PydanticAiUsageLimits(**limits),
+            event_stream_handler=event_handler,
         ) as stream_result:
             stream_result = cast(StreamedRunResult[AgentContext[Any], Any], stream_result)
-            original_stream = stream_result.stream_output
-            original_text_stream = stream_result.stream_text
             resolved_model = (
                 use_model.model_name if isinstance(use_model, Model) else str(use_model)
             )
             stream_result.model_name = resolved_model  # type: ignore
 
-            def get_wrapped_stream(fn):
-                async def wrapped_stream(*args, **kwargs):
-                    last_content = None
-                    async for chunk in fn(*args, **kwargs):
-                        # Only emit if content has changed
-                        if chunk != last_content:
-                            self.chunk_streamed.emit(str(chunk), message_id)
-                            last_content = chunk
-                            yield chunk
+            # Add formatted content from final result
+            if stream_result.is_complete:
+                messages = stream_result.new_messages()
+                responses = [m for m in messages if isinstance(m, ModelResponse)]
+                from pydantic_ai.messages import TextPart
 
-                    if stream_result.is_complete:
-                        self.chunk_streamed.emit("", message_id)
-                        messages = stream_result.new_messages()
-                        tool_dict = {i.name: i for i in tools or []}
-                        # Extract and update tool calls
-                        tool_calls = get_tool_calls(
-                            messages, tool_dict, agent_name=self.name
-                        )
-                        for call in tool_calls:
-                            call.message_id = message_id
-                            call.context_data = (
-                                self._context.data if self._context else None
-                            )
-                            self.tool_used.emit(call)
-                        # Format final content
-                        responses = [m for m in messages if isinstance(m, ModelResponse)]
-                        parts = [p for msg in responses for p in msg.parts]
-                        content = "\n".join(format_part(p) for p in parts)
-                        # Update stream result with formatted content
-                        stream_result.formatted_content = content  # type: ignore
+                from llmling_agent_providers.pydanticai.utils import format_part
 
-                return wrapped_stream
+                parts = [
+                    p for msg in responses for p in msg.parts if isinstance(p, TextPart)
+                ]
+                stream_result.formatted_content = "\n".join(format_part(p) for p in parts)  # type: ignore
 
+            # Reset model signal if needed
             if model:
                 original = self.model
                 if isinstance(original, str):
                     original = infer_model(original)
                 self.model_changed.emit(original)
 
-            stream_result.stream_output = get_wrapped_stream(original_stream)  # type: ignore
-            stream_result.stream_text = get_wrapped_stream(original_text_stream)  # type: ignore
             yield stream_result  # type: ignore
+
+    def _create_tool_call_info(
+        self, tool_part: ToolCallPart, tool_dict: dict, message_id: str
+    ):
+        """Create ToolCallInfo from tool call part."""
+        import json
+
+        from llmling_agent.tools.tool_call_info import ToolCallInfo
+
+        # Parse args if they're a JSON string
+        args = {}
+        if hasattr(tool_part, "args") and tool_part.args:
+            try:
+                args = (
+                    json.loads(tool_part.args)
+                    if isinstance(tool_part.args, str)
+                    else tool_part.args
+                )
+            except (json.JSONDecodeError, TypeError):
+                args = {"raw_args": tool_part.args}
+
+        return ToolCallInfo(
+            tool_name=tool_part.tool_name,
+            args=args,
+            result=None,  # Will be filled when tool execution completes
+            agent_name=self.name,
+            tool_call_id=tool_part.tool_call_id,
+            message_id=message_id,
+            context_data=self._context.data if self._context else None,
+        )
+
+    async def stream_events(
+        self,
+        *prompts: str | Content,
+        message_history: list[ChatMessage],
+        message_id: str,
+        result_type: type[Any] | None = None,
+        model: ModelType = None,
+        tools: list[Tool] | None = None,
+        system_prompt: str | None = None,
+        usage_limits: UsageLimits | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent]:
+        """Stream events directly from pydantic-ai without wrapper complexity."""
+        agent = await self.get_agent(system_prompt or "", tools=tools or [])
+        use_model = model or self.model
+        limits = asdict(usage_limits) if usage_limits else {}
+        if isinstance(use_model, str):
+            use_model = infer_model(use_model)
+
+        if model:
+            self.model_changed.emit(use_model)
+
+        # Convert prompts to pydantic-ai format
+        converted_prompts = await convert_prompts_to_user_content(prompts)
+        # Convert all messages to pydantic-ai format
+        model_messages = [to_model_request(m) for m in message_history]
+
+        tool_dict = {i.name: i for i in tools or []}
+
+        # Stream events directly from pydantic-ai
+        async for event in agent.run_stream_events(
+            converted_prompts,
+            deps=self._context,
+            message_history=model_messages,
+            model=model or self.model,  # type: ignore
+            output_type=result_type or str,
+            model_settings=self.model_settings,  # type: ignore
+            usage_limits=PydanticAiUsageLimits(**limits),
+        ):
+            # Emit signals for external consumers
+            match event:
+                case (
+                    PartStartEvent(part=ToolCallPart() as tool_part)
+                    | FunctionToolCallEvent(part=tool_part)
+                ):
+                    call_info = self._create_tool_call_info(
+                        tool_part, tool_dict, message_id
+                    )
+                    self.tool_used.emit(call_info)
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                    self.chunk_streamed.emit(delta, message_id)
+
+            yield event
+
+        # Stream is complete - emit empty chunk to signal completion
+        self.chunk_streamed.emit("", message_id)
+
+        # Reset model signal if needed
+        if model:
+            original = self.model
+            if isinstance(original, str):
+                original = infer_model(original)
+            self.model_changed.emit(original)
 
 
 if __name__ == "__main__":
     import asyncio
+    import webbrowser
+
+    from llmling_agent.tools import Tool
 
     async def main():
-        provider = PydanticAIProvider[None](model="openai:gpt-5-nano")
-
-        # Example usage
-        response = await provider.generate_response(
-            "Hello, how are you?",
-            message_id="test",
-            message_history=[],
+        # Test our provider implementation
+        provider = PydanticAIProvider(
+            model="openai:gpt-4o-mini",
         )
-        print(response.cost_and_usage)
+
+        # Create a simple tool
+        def open_browser(url: str) -> bool:
+            """Open a URL in the browser."""
+            webbrowser.open(url)
+            return True
+
+        tool = Tool.from_callable(open_browser)
+
+        print("Testing our provider's stream_events method...")
+
+        # Test streaming with tool calls
+        chunks = []
+        final_result = None
+
+        async for event in provider.stream_events(
+            "Open google.com, then write a short poem",
+            message_history=[],
+            message_id="test-123",
+            tools=[tool],
+        ):
+            from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+            from pydantic_ai.run import AgentRunResultEvent
+
+            match event:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                    chunks.append(delta)
+                    print(f"Text chunk: '{delta}'")
+                case AgentRunResultEvent(result=result):
+                    final_result = result
+                    print(f"Final result: {result}")
+
+        print(f"\nTotal chunks collected: {len(chunks)}")
+        print(f"Full content: {''.join(chunks)}")
+        print(f"Final result available: {final_result is not None}")
+        print(f"Model: {final_result.model_name}")  # type: ignore
 
     asyncio.run(main())
