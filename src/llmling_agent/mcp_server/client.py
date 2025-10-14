@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
     import mcp
     from mcp import ClientSession
-    from mcp.client.session import RequestContext
-    from mcp.shared.session import ProgressFnT
+    from mcp.client.session import MessageHandlerFnT, RequestContext
+    from mcp.shared.session import ProgressFnT, RequestResponder
     from mcp.types import Tool, Tool as MCPTool
     from pydantic_ai import RunContext
 
@@ -30,6 +30,39 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     """Convert MCP tool to OpenAI function schema."""
     desc = tool.description or "No description provided"
     return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
+
+
+async def message_handler(
+    message: RequestResponder[mcp.ServerRequest, mcp.ClientResult]
+    | mcp.ServerNotification
+    | Exception,
+):
+    """Noop message handler for now."""
+    import mcp
+    from mcp.shared.session import RequestResponder
+    from mcp.types import ClientResult, EmptyResult
+
+    if isinstance(message, Exception):
+        raise message
+    if isinstance(message, RequestResponder):
+        with message as resp:
+            await resp.respond(ClientResult(root=EmptyResult()))
+            return
+    match message.root:
+        case mcp.types.CancelledNotification(params=params):
+            print(params)
+        case mcp.ProgressNotification(params=params):
+            print(params)
+        case mcp.LoggingMessageNotification(params=params):
+            print(params)
+        case mcp.ResourceUpdatedNotification(uri=uri):
+            print(uri)
+        case mcp.types.ResourceListChangedNotification(params=params):
+            print(params)
+        case mcp.types.ToolListChangedNotification(params=params):
+            print(params)
+        case mcp.types.PromptListChangedNotification(params=params):
+            print(params)
 
 
 class MCPClient:
@@ -49,6 +82,7 @@ class MCPClient:
         ]
         | None = None,
         progress_handler: ProgressHandler | None = None,
+        message_handler: MessageHandlerFnT | None = None,
         accessible_roots: list[str] | None = None,
     ):
         self.exit_stack = AsyncExitStack()
@@ -58,6 +92,7 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
+        self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
 
     async def __aenter__(self) -> Self:
@@ -185,6 +220,7 @@ class MCPClient:
             elicitation_callback=elicitation_wrapper,
             sampling_callback=sampling_wrapper,
             list_roots_callback=list_roots_wrapper,
+            message_handler=self._message_handler,
         )
         self.session = await self.exit_stack.enter_async_context(session)
         assert self.session
