@@ -516,25 +516,11 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
         self, tool_part: ToolCallPart, tool_dict: dict, message_id: str
     ):
         """Create ToolCallInfo from tool call part."""
-        import json
-
         from llmling_agent.tools.tool_call_info import ToolCallInfo
-
-        # Parse args if they're a JSON string
-        args = {}
-        if hasattr(tool_part, "args") and tool_part.args:
-            try:
-                args = (
-                    json.loads(tool_part.args)
-                    if isinstance(tool_part.args, str)
-                    else tool_part.args
-                )
-            except (json.JSONDecodeError, TypeError):
-                args = {"raw_args": tool_part.args}
 
         return ToolCallInfo(
             tool_name=tool_part.tool_name,
-            args=args,
+            args=tool_part.args_as_dict(),
             result=None,  # Will be filled when tool execution completes
             agent_name=self.name,
             tool_call_id=tool_part.tool_call_id,
