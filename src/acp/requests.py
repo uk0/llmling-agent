@@ -9,9 +9,12 @@ from acp.schema import (
     CreateTerminalRequest,
     EnvVariable,
     KillTerminalCommandRequest,
+    PermissionOption,
     ReadTextFileRequest,
     ReleaseTerminalRequest,
+    RequestPermissionRequest,
     TerminalOutputRequest,
+    ToolCallUpdate,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
 )
@@ -21,6 +24,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from acp.schema import (
         CreateTerminalResponse,
+        RequestPermissionResponse,
         TerminalOutputResponse,
         WaitForTerminalExitResponse,
     )
@@ -226,3 +230,42 @@ class ACPRequests:
 
         finally:  # Always release terminal
             await self.release_terminal(terminal_id)
+
+    async def request_permission(
+        self,
+        tool_call_id: str,
+        *,
+        title: str | None = None,
+        options: list[PermissionOption] | None = None,
+    ) -> RequestPermissionResponse:
+        """Request permission from user before executing a tool call.
+
+        Args:
+            tool_call_id: Unique identifier for the tool call
+            title: Human-readable description of the operation
+            options: Available permission options (defaults to allow/reject once)
+
+        Returns:
+            Permission response with user's decision
+        """
+        if options is None:
+            options = [
+                PermissionOption(
+                    option_id="allow-once",
+                    name="Allow once",
+                    kind="allow_once",
+                ),
+                PermissionOption(
+                    option_id="reject-once",
+                    name="Reject",
+                    kind="reject_once",
+                ),
+            ]
+
+        tool_call = ToolCallUpdate(tool_call_id=tool_call_id, title=title)
+        request = RequestPermissionRequest(
+            session_id=self.session.session_id,
+            tool_call=tool_call,
+            options=options,
+        )
+        return await self.session.client.request_permission(request)
