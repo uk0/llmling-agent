@@ -497,12 +497,7 @@ def _clean_message_history(messages: list[ModelMessage]) -> list[ModelMessage]:
     This removes ToolCallPart from the last ModelResponse if it has unprocessed
     tool calls, but preserves all text content and reasoning.
     """
-    if not messages:
-        return messages
-
-    # Make a copy to avoid modifying the original
-    cleaned_messages = list(messages)
-
+    cleaned_messages = list(messages)  # Make a copy to avoid modifying the original
     # Check if the last message is a ModelResponse with unprocessed tool calls
     if cleaned_messages:
         # Import at runtime to avoid circular imports
