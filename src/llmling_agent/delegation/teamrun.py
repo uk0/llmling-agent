@@ -10,6 +10,8 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
+from pydantic_ai import RunUsage
+
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
@@ -23,7 +25,6 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
-    from tokonomics.pydanticai_cost import Usage
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
@@ -180,10 +181,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             if self.validator:
                 all_nodes.append(self.validator)
             first = all_nodes[0]
-            connections = [
-                source.connect_to(target, queued=True)
-                for source, target in pairwise(all_nodes)
-            ]
+            connections = [s.connect_to(t, queued=True) for s, t in pairwise(all_nodes)]
             for conn in connections:
                 self._team_talk.append(conn)
 
@@ -204,7 +202,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 start = perf_counter()
                 messages = await connection.trigger()
 
-                # If this is the last node
                 if target == all_nodes[-1]:
                     last_talk = Talk[Any](target, [], connection_type="run")
                     if response.message:
@@ -216,8 +213,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 response = AgentResponse[Any](target_name, message=msg, timing=timing)
                 yield response
 
-        finally:
-            # Always clean up connections
+        finally:  # Always clean up connections
             for connection in connections:
                 connection.disconnect()
 
@@ -237,8 +233,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             streams: list[StreamingResponseProtocol[str]] = []
             current_message = prompts
 
-            # Set up all streams
-            for agent in self.agents:
+            for agent in self.agents:  # Set up all streams
                 try:
                     assert isinstance(agent, TeamRun | Agent | StructuredAgent), (
                         "Cannot stream teams!"
@@ -267,18 +262,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     self.is_complete = False
                     self.model_name = None
 
-                def usage(self) -> Usage:
-                    @dataclass
-                    class Usage:
-                        input_tokens: int
-                        output_tokens: int
-
-                        @property
-                        def total_tokens(self) -> int:
-                            """Total number of tokens used."""
-                            return self.input_tokens + self.output_tokens
-
-                    return Usage(0, 0)
+                def usage(self) -> RunUsage:
+                    return RunUsage(input_tokens=0, output_tokens=0)
 
                 async def stream_output(self) -> AsyncGenerator[str]:  # type: ignore
                     for idx, stream in enumerate(self.streams):

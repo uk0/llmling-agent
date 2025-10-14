@@ -109,8 +109,8 @@ class Job[TDeps, TResult = str](Schema):
             match tool:
                 case str():
                     tools.append(Tool.from_callable(tool))
-                case ToolConfig():
-                    tools.append(Tool.from_callable(tool.import_path))
+                case ToolConfig(import_path=import_path):
+                    tools.append(Tool.from_callable(import_path))
                 case Tool():
                     tools.append(tool)
                 case _:
