@@ -188,6 +188,11 @@ class AgentProvider[TDeps]:
     def stream_response(
         self,
         *prompts: str | Content,
+        message_id: str,
+        message_history: list[ChatMessage],
+        result_type: type[Any] | None = None,
+        model: ModelType = None,
+        tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:

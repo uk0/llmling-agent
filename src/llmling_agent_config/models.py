@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import Field, ImportString, SecretStr
-from pydantic_ai.models.function import FunctionModel
 from schemez import Schema
 
 
@@ -11,6 +10,7 @@ if TYPE_CHECKING:
     from llmling_models import CostOptimizedMultiModel, DelegationMultiModel, InputModel
     from llmling_models.augmented import AugmentedModel
     from pydantic_ai.models.fallback import FallbackModel
+    from pydantic_ai.models.function import FunctionModel
 
 
 class BaseModelConfig(Schema):
