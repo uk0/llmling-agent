@@ -11,14 +11,11 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import Agent as PydanticAIAgent
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import (
-    FinalResultEvent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartDeltaEvent,
-    PartStartEvent,
     RetryPromptPart,
     TextPartDelta,
     ThinkingPartDelta,
@@ -28,11 +25,7 @@ from pydantic_ai.messages import (
 
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
-from acp.schema import (
-    AgentMessageChunk,
-    SessionNotification,
-    TextContentBlock,
-)
+from acp.schema import AgentMessageChunk, SessionNotification, TextContentBlock
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
@@ -60,9 +53,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from mcp.types import Prompt
-    from pydantic_ai import AgentStreamEvent, ModelRequestNode
-    from pydantic_ai.agent import CallToolsNode
-    from pydantic_ai.run import AgentRun
+    from pydantic_ai import AgentStreamEvent
 
     from acp import Client
     from acp.acp_types import ContentBlock, MCPServer, StopReason
@@ -350,7 +341,7 @@ class ACPSession:
     async def _process_iter_response(  # noqa: PLR0915
         self, content: list[str | BaseContent]
     ) -> AsyncGenerator[SessionNotification | StopReason]:
-        """Process content using agent iteration for comprehensive streaming.
+        """Process content using event-based streaming.
 
         Args:
             content: List of content objects (strings and Content objects)
@@ -359,91 +350,96 @@ class ACPSession:
             SessionNotification objects for all agent execution events,
             or StopReason literal
         """
-        msg = "Starting agent.iterate_run for session %s with %d content items"
+        from pydantic_ai.messages import (
+            FunctionToolCallEvent,
+            FunctionToolResultEvent,
+        )
+
+        from llmling_agent.agent.agent import StreamCompleteEvent
+
+        msg = "Starting agent.run_stream for session %s with %d content items"
         logger.info(msg, self.session_id, len(content))
         logger.info("Agent model: %s", self.agent.model_name)
 
+        event_count = 0
+        has_yielded_anything = False
+        # Track tool call inputs by tool_call_id for process_pydantic_event
+        inputs: dict[str, dict] = {}
+
         try:
-            async with self.agent.iterate_run(
+            async for event in self.agent.run_stream(
                 *content, usage_limits=self.usage_limits
-            ) as agent_run:
-                logger.info("Agent run started for session %s", self.session_id)
-                node_count = 0
-                has_yielded_anything = False
-                async for node in agent_run:
-                    if self._cancelled:
-                        yield "cancelled"
-                        return
+            ):
+                if self._cancelled:
+                    yield "cancelled"
+                    return
 
-                    node_count += 1
-                    msg = "Processing node %d (%s) for session %s"
-                    logger.info(msg, node_count, type(node).__name__, self.session_id)
-                    if PydanticAIAgent.is_user_prompt_node(node):
-                        # User prompt node - log but don't stream (already processed)
-                        msg = "Processing user prompt node for session %s"
-                        logger.debug(msg, self.session_id)
+                event_count += 1
+                msg = "Processing event %d (%s) for session %s"
+                logger.debug(msg, event_count, type(event).__name__, self.session_id)
 
-                    elif PydanticAIAgent.is_model_request_node(node):
-                        # Model request node - stream the model's response
-                        msg = "Starting model request streaming for session %s"
+                match event:
+                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                        # Stream text chunks as they arrive
+                        if delta and delta.strip():
+                            content_block = TextContentBlock(text=delta)
+                            update = AgentMessageChunk(content=content_block)
+                            notification = SessionNotification(
+                                session_id=self.session_id, update=update
+                            )
+                            has_yielded_anything = True
+                            yield notification
+
+                    case PartDeltaEvent(
+                        delta=ThinkingPartDelta(content_delta=thinking_content)
+                    ) if thinking_content:
+                        # Handle thinking/reasoning deltas
+                        msg = "Processing ThinkingPartDelta %r for session %s"
+                        logger.info(msg, thinking_content, self.session_id)
+                        thought_notification = create_thought_chunk(
+                            thinking_content, self.session_id
+                        )
+                        has_yielded_anything = True
+                        yield thought_notification
+
+                    case PartDeltaEvent(delta=ToolCallPartDelta()):
+                        # Handle tool call delta updates
+                        msg = "Received ToolCallPartDelta for session %s"
                         logger.info(msg, self.session_id)
-                        notification_count = 0
-                        async for result in self._stream_model_request(node, agent_run):
-                            if isinstance(result, str):
-                                # Stop reason from model request
-                                yield result
-                                return
-                            elif result:
-                                notification_count += 1
-                                has_yielded_anything = True
-                                msg = "Yielding model notification %d for session %s"
-                                logger.info(msg, notification_count, self.session_id)
-                                yield result
-                        msg = "Model request streaming finished, yielded %d notifications"
-                        logger.info(msg, notification_count)
 
-                    elif PydanticAIAgent.is_call_tools_node(node):
-                        # Tool execution node - stream tool calls and results
-                        msg = "Starting tool execution streaming for session %s"
-                        logger.info(msg, self.session_id)
-                        async for notification in self._stream_tool_execution(
-                            node, agent_run
+                    case FunctionToolCallEvent() | FunctionToolResultEvent():
+                        # Handle tool events using process_pydantic_event function
+                        logger.info("Processing tool event: %s", type(event).__name__)
+                        async for notification in process_pydantic_event(
+                            event, session_id=self.session_id, inputs=inputs
                         ):
-                            if notification:
-                                has_yielded_anything = True
-                                yield notification
+                            has_yielded_anything = True
+                            yield notification
 
-                    elif (
-                        PydanticAIAgent.is_end_node(node)
-                        and agent_run.result
-                        and agent_run.result.output
-                    ):
-                        final_content = str(agent_run.result.output)
-                        msg = "End node reached with output: %r"
-                        logger.info(msg, final_content[:100])
-                        if final_content.strip():
-                            # Send final response as session update if nothing streamed
-                            if not has_yielded_anything:
-                                msg = (
-                                    "No streaming occurred,"
-                                    "sending final response for session %s"
-                                )
-                                logger.info(msg, self.session_id)
-                                content_block = TextContentBlock(text=final_content)
-                                update = AgentMessageChunk(content=content_block)
-                                notification = SessionNotification(
-                                    session_id=self.session_id, update=update
-                                )
-                                has_yielded_anything = True
-                                yield notification
-                            msg = "Agent iteration completed for session %s"
-                            logger.debug(msg, self.session_id)
-                    else:
-                        msg = "Unknown node type for session %s: %s"
-                        logger.info(msg, self.session_id, type(node).__name__)
+                    case StreamCompleteEvent(message=message):
+                        # Handle final completion
+                        logger.info("Stream completed for session %s", self.session_id)
 
-                msg = "Agent iteration finished. Processed %d nodes, yielded anything: %s"
-                logger.info(msg, node_count, has_yielded_anything)
+                        # If no chunks were streamed, send the complete content
+                        if (
+                            not has_yielded_anything
+                            and message.content
+                            and str(message.content).strip()
+                        ):
+                            content_block = TextContentBlock(text=str(message.content))
+                            update = AgentMessageChunk(content=content_block)
+                            notification = SessionNotification(
+                                session_id=self.session_id, update=update
+                            )
+                            has_yielded_anything = True
+                            yield notification
+
+                    case _:
+                        # Log other events for debugging
+                        logger.debug("Other event: %s", type(event).__name__)
+
+            msg = "Agent streaming finished. Processed %d events, yielded anything: %s"
+            logger.info(msg, event_count, has_yielded_anything)
 
         except UsageLimitExceeded as e:
             logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
@@ -463,136 +459,12 @@ class ACPSession:
                 # Default to max_tokens for other usage limits
                 yield "max_tokens"
         except Exception as e:
-            logger.exception("Error in agent iteration for session %s", self.session_id)
+            logger.exception("Error in agent streaming for session %s", self.session_id)
             logger.info("Sending error updates for session %s", self.session_id)
             if error_update := to_agent_text_notification(
                 f"Agent error: {e}", self.session_id
             ):
                 yield error_update
-
-    async def _stream_model_request(  # noqa: PLR0915
-        self,
-        node: ModelRequestNode[Any, Any],
-        agent_run: AgentRun[Any, Any],
-    ) -> AsyncGenerator[SessionNotification | StopReason]:
-        """Stream model request events.
-
-        Args:
-            node: Model request node
-            agent_run: Agent run context
-
-        Yields:
-            SessionNotification objects for model streaming, or StopReason literal
-        """
-        try:
-            async with node.stream(agent_run.ctx) as request_stream:
-                event_count = 0
-                msg = "Starting to iterate over request_stream events for session %s"
-                logger.info(msg, self.session_id)
-                async for event in request_stream:
-                    # Check for cancellation
-                    if self._cancelled:
-                        yield "cancelled"
-                        return
-
-                    event_count += 1
-                    msg = "Received event %d: %s for session %s"
-                    logger.info(msg, event_count, type(event).__name__, self.session_id)
-                    match event:
-                        case PartStartEvent():
-                            # Part started - could log but don't stream yet
-                            pass
-
-                        case PartDeltaEvent(
-                            delta=TextPartDelta(content_delta=content)
-                        ) if content:
-                            msg = "Processing TextPartDelta (length=%d) %r for session %s"
-                            logger.info(msg, len(content), content[:100], self.session_id)
-                            # Stream text deltas directly as single agent message chunks
-                            content_block = TextContentBlock(text=content)
-                            update = AgentMessageChunk(content=content_block)
-                            notification = SessionNotification(
-                                session_id=self.session_id, update=update
-                            )
-                            msg = "Yielding TextPartDelta notification for session %s"
-                            logger.info(msg, self.session_id)
-                            yield notification
-
-                        case PartDeltaEvent(delta=TextPartDelta(content_delta=content)):
-                            msg = "Received empty/falsy TextPartDelta %r for session %s"
-                            logger.info(msg, content, self.session_id)
-
-                        case PartDeltaEvent(
-                            delta=ThinkingPartDelta(content_delta=content)
-                        ) if content:
-                            msg = "Processing ThinkingPartDelta %r for session %s"
-                            logger.info(msg, content, self.session_id)
-                            thought_notification = create_thought_chunk(
-                                content, self.session_id
-                            )
-                            yield thought_notification
-
-                        case PartDeltaEvent(delta=ToolCallPartDelta()):
-                            msg = "Received ToolCallPartDelta for session %s"
-                            logger.info(msg, self.session_id)
-                        case FinalResultEvent():
-                            msg = "Received FinalResultEvent for session %s"
-                            logger.info(msg, self.session_id)
-                            # Stream the final text output after FinalResultEvent
-                            async for output in request_stream.stream_text(delta=True):
-                                if not output or not output.strip():
-                                    continue
-                                msg = "Processing final output (length=%d) for session %s"
-                                logger.info(msg, len(output), self.session_id)
-                                content_block = TextContentBlock(text=output)
-                                update = AgentMessageChunk(content=content_block)
-                                notification = SessionNotification(
-                                    session_id=self.session_id, update=update
-                                )
-                                msg = "Yielding final output notification for session %s"
-                                logger.info(msg, self.session_id)
-                                yield notification
-                            break
-
-                        case _:
-                            msg = "Received unhandled event type: %s for session %s"
-                            logger.info(msg, type(event).__name__, self.session_id)
-
-        except Exception:
-            msg = "Error streaming model request for session %s"
-            logger.exception(msg, self.session_id)
-            yield "refusal"
-
-    async def _stream_tool_execution(
-        self,
-        node: CallToolsNode[Any, Any],
-        agent_run: AgentRun[Any, Any],
-    ) -> AsyncGenerator[SessionNotification]:
-        """Stream tool execution events.
-
-        Args:
-            node: Tool execution node
-            agent_run: Agent run context
-
-        Yields:
-            SessionNotification objects for tool execution
-        """
-        # Track tool call inputs by tool_call_id
-        inputs: dict[str, dict] = {}
-
-        try:
-            async with node.stream(agent_run.ctx) as tool_stream:
-                async for event in tool_stream:
-                    async for notification in process_pydantic_event(
-                        event,
-                        session_id=self.session_id,
-                        inputs=inputs,
-                    ):
-                        yield notification
-
-        except Exception:
-            msg = "Error streaming tool execution for session %s"
-            logger.exception(msg, self.session_id)
 
     async def execute_tool(
         self, tool_name: str, tool_params: dict[str, Any]
