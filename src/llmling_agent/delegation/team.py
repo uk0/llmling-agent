@@ -7,6 +7,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
+from anyenv.calling.merge_streams import merge_streams
 from toprompt import to_prompt
 
 from llmling_agent.delegation.base_team import BaseTeam
@@ -22,9 +23,12 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
+    from pydantic_ai.messages import AgentStreamEvent
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
+    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent.agent import StreamCompleteEvent
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
 
@@ -162,6 +166,44 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             },
         )
 
+    async def run_stream(
+        self,
+        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        **kwargs: Any,
+    ) -> AsyncIterator[tuple[AnyAgent, AgentStreamEvent | StreamCompleteEvent]]:
+        """Stream responses from all team members in parallel.
+
+        Args:
+            prompts: Input prompts to process in parallel
+            kwargs: Additional arguments passed to each agent
+
+        Yields:
+            Tuples of (agent, event) where agent is the Agent instance
+            and event is the streaming event from that agent.
+        """
+        from llmling_agent.agent import Agent, StructuredAgent
+
+        # Get nodes to run
+        combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
+        all_nodes = list(await self.pick_agents(combined_prompt))
+
+        # Create list of (agent, stream) pairs
+        agent_streams = []
+        for agent in all_nodes:
+            if not isinstance(agent, Agent | StructuredAgent):
+                continue  # Skip non-streaming agents
+
+            # Create a stream that yields (agent, event) tuples
+            async def _agent_stream(a=agent):
+                async for event in a.run_stream(*prompts, **kwargs):
+                    yield (a, event)
+
+            agent_streams.append(_agent_stream())
+
+        # Merge all agent streams
+        async for agent_event_tuple in merge_streams(*agent_streams):
+            yield agent_event_tuple
+
     async def run_job[TJobResult](
         self,
         job: Job[TDeps, TJobResult],
@@ -238,3 +280,16 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             msg = "Job execution failed"
             logger.exception(msg)
             raise JobError(msg) from e
+
+
+if __name__ == "__main__":
+    from llmling_agent import Agent
+
+    async def main():
+        agent_a = Agent(name="Agent A", model="openai:gpt-5-nano")
+        agent_b = Agent(name="Agent B", model="openai:gpt-5-nano")
+        team = Team([agent_a, agent_b])
+        async for agent, event in team.run_stream("hello"):
+            print(f"{agent.name}: {event}")
+
+    asyncio.run(main())
