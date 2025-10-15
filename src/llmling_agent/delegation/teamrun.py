@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling_agent.delegation.base_team import BaseTeam
+from llmling_agent.delegation.team import normalize_stream_for_teams
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.talk.talk import Talk, TeamTalk
@@ -220,7 +221,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         require_all: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[tuple[AnyAgent, AgentStreamEvent | StreamCompleteEvent]]:
+    ) -> AsyncIterator[
+        tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]
+    ]:
         """Stream responses through the chain of team members.
 
         Args:
@@ -235,7 +238,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """
         from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
-        from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.agent.agent import StreamCompleteEvent
 
         current_message = prompts
@@ -243,21 +245,31 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
         for agent in self.agents:
             try:
-                assert isinstance(agent, Agent | StructuredAgent), "Cannot stream teams!"
-
                 agent_content = []
-                async for event in agent.run_stream(*current_message, **kwargs):
+
+                # Use wrapper to normalize all streaming nodes to (agent, event) tuples
+                def _raise_streaming_error():
+                    msg = f"Agent {agent.name} does not support streaming"
+                    raise ValueError(msg)
+
+                if hasattr(agent, "run_stream"):
+                    stream = normalize_stream_for_teams(agent, *current_message, **kwargs)
+                else:
+                    _raise_streaming_error()
+
+                async for agent_event_tuple in stream:
+                    actual_agent, event = agent_event_tuple
                     match event:
                         case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                             agent_content.append(delta)
                             collected_content.append(delta)
-                            yield (agent, event)  # Yield tuple with agent context
+                            yield (actual_agent, event)  # Yield tuple with agent context
                         case StreamCompleteEvent(message=message):
                             # Use complete response as input for next agent
                             current_message = (message.content,)
-                            yield (agent, event)  # Yield tuple with agent context
+                            yield (actual_agent, event)  # Yield tuple with agent context
                         case _:
-                            yield (agent, event)  # Yield tuple with agent context
+                            yield (actual_agent, event)  # Yield tuple with agent context
 
             except Exception as e:
                 if require_all:
@@ -270,41 +282,24 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 if __name__ == "__main__":
     import asyncio
 
-    from llmling_agent import AgentPool
+    from llmling_agent import Agent
 
     async def main():
-        async with AgentPool[None]() as pool:
-            # Create three agents with different roles
-            agent1 = await pool.add_agent(
-                "analyzer",
-                system_prompt="You analyze text and find key points.",
-                model="openai:gpt-5-nano",
-            )
-            agent2 = await pool.add_agent(
-                "summarizer",
-                system_prompt="You create concise summaries.",
-                model="openai:gpt-5-nano",
-            )
+        from llmling_agent.delegation.team import Team
 
-            # Create team and get monitored execution
-            run = agent1 | agent2
+        agent1 = Agent(name="Agent1", model="test")
+        agent2 = Agent(name="Agent2", model="test")
+        agent3 = Agent(name="Agent3", model="test")
 
-            text = "The quick brown fox jumps over the lazy dog."
-            print(f"\nProcessing text: {text}\n")
+        # Test TeamRun containing Team (sequential containing parallel)
+        inner_team = Team([agent1, agent2], name="Parallel")
+        outer_run = TeamRun([inner_team, agent3], name="Sequential")
 
-            # Start run and get stats object (ExtendedTeamTalk)
-            stats = await run.run_in_background(text)
-
-            # Poll stats while running
-            while run.is_running:
-                print("\nCurrent status:")
-                print(f"Number of active connections: {len(stats)}")
-                print("Errors:", len(stats.errors))
-                await asyncio.sleep(0.5)
-
-            # Wait for completion and get results
-            result = await run.wait()
-            print("\nFinal Results:")
-            print(result)
+        print("Testing TeamRun containing Team...")
+        try:
+            async for node, event in outer_run.run_stream("test"):
+                print(f"{node.name}: {type(event).__name__}")
+        except Exception as e:
+            print(f"Error: {e}")
 
     asyncio.run(main())

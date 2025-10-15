@@ -27,13 +27,42 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import StreamCompleteEvent
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
 
 
 TDeps = TypeVar("TDeps", default=None)
+
+
+async def normalize_stream_for_teams(
+    node: MessageNode[Any, Any],
+    *args: Any,
+    **kwargs: Any,
+) -> AsyncIterator[tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]]:
+    """Normalize any streaming node to yield (node, event) tuples for team composition.
+
+    Args:
+        node: The streaming node (Agent, Team, etc.)
+        *args: Arguments to pass to run_stream
+        **kwargs: Keyword arguments to pass to run_stream
+
+    Yields:
+        Tuples of (node, event) where node is the MessageNode instance
+        and event is the streaming event from that node.
+    """
+    if not hasattr(node, "run_stream"):
+        msg = f"Node {node.name} does not support streaming"
+        raise ValueError(msg)
+
+    stream = node.run_stream(*args, **kwargs)  # type: ignore[attr-defined]
+    async for item in stream:
+        if isinstance(item, tuple):
+            # Already normalized (from Team or other composite node)
+            yield item
+        else:
+            # Raw event (from Agent) - wrap it with the source node
+            yield (node, item)
 
 
 class Team[TDeps](BaseTeam[TDeps, Any]):
@@ -170,7 +199,9 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
         **kwargs: Any,
-    ) -> AsyncIterator[tuple[AnyAgent, AgentStreamEvent | StreamCompleteEvent]]:
+    ) -> AsyncIterator[
+        tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]
+    ]:
         """Stream responses from all team members in parallel.
 
         Args:
@@ -181,24 +212,16 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             Tuples of (agent, event) where agent is the Agent instance
             and event is the streaming event from that agent.
         """
-        from llmling_agent.agent import Agent, StructuredAgent
-
         # Get nodes to run
         combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
         all_nodes = list(await self.pick_agents(combined_prompt))
 
-        # Create list of (agent, stream) pairs
-        agent_streams = []
-        for agent in all_nodes:
-            if not isinstance(agent, Agent | StructuredAgent):
-                continue  # Skip non-streaming agents
-
-            # Create a stream that yields (agent, event) tuples
-            async def _agent_stream(a=agent):
-                async for event in a.run_stream(*prompts, **kwargs):
-                    yield (a, event)
-
-            agent_streams.append(_agent_stream())
+        # Create list of streams that yield (agent, event) tuples
+        agent_streams = [
+            normalize_stream_for_teams(agent, *prompts, **kwargs)
+            for agent in all_nodes
+            if hasattr(agent, "run_stream")
+        ]
 
         # Merge all agent streams
         async for agent_event_tuple in merge_streams(*agent_streams):
@@ -286,10 +309,18 @@ if __name__ == "__main__":
     from llmling_agent import Agent
 
     async def main():
-        agent_a = Agent(name="Agent A", model="openai:gpt-5-nano")
-        agent_b = Agent(name="Agent B", model="openai:gpt-5-nano")
-        team = Team([agent_a, agent_b])
-        async for agent, event in team.run_stream("hello"):
-            print(f"{agent.name}: {event}")
+        from llmling_agent.delegation.teamrun import TeamRun
+
+        agent_a = Agent(name="A", model="test")
+        agent_b = Agent(name="B", model="test")
+        agent_c = Agent(name="C", model="test")
+
+        # Test Team containing TeamRun (parallel containing sequential)
+        inner_run = TeamRun([agent_a, agent_b], name="Sequential")
+        outer_team = Team([inner_run, agent_c], name="Parallel")
+
+        print("Testing Team containing TeamRun...")
+        async for node, event in outer_team.run_stream("test"):
+            print(f"{node.name}: {type(event).__name__}")
 
     asyncio.run(main())
