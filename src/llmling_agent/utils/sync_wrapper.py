@@ -6,7 +6,7 @@ import asyncio
 import concurrent.futures
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, Any, Concatenate, Literal, overload
+from typing import TYPE_CHECKING, Any
 import warnings
 
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class AsyncSyncWrapper[**P, T]:
     """Wrapper that provides both async __call__ and sync() methods."""
 
-    def __init__(self, func: Callable[..., Awaitable[T]], *, is_bound: bool = False):
+    def __init__(self, func: Callable[P, Awaitable[T]], *, is_bound: bool) -> None:
         self._func = func
         self._instance: Any = None
         self._is_bound = is_bound
@@ -88,52 +88,19 @@ class AsyncSyncWrapper[**P, T]:
         return getattr(self._func, name)
 
 
-@overload
-def add_sync[**P, T](
-    func: Callable[P, Awaitable[T]], *, bound: Literal[False] = False
-) -> AsyncSyncWrapper[P, T]: ...
+def add_sync(*, bound: bool):
+    """Decorator factory to add sync() method to async functions.
 
-
-@overload
-def add_sync[**P, T](
-    func: Callable[Concatenate[Any, P], Awaitable[T]], *, bound: Literal[True]
-) -> AsyncSyncWrapper[P, T]: ...
-
-
-@overload
-def add_sync[**P, T](
-    *, bound: Literal[False] = False
-) -> Callable[[Callable[P, Awaitable[T]]], AsyncSyncWrapper[P, T]]: ...
-
-
-@overload
-def add_sync[**P, T](
-    *, bound: Literal[True]
-) -> Callable[[Callable[Concatenate[Any, P], Awaitable[T]]], AsyncSyncWrapper[P, T]]: ...
-
-
-def add_sync[**P, T](
-    func: Callable[P, Awaitable[T]]
-    | Callable[Concatenate[Any, P], Awaitable[T]]
-    | None = None,
-    *,
-    bound: bool = False,
-) -> (
-    AsyncSyncWrapper[P, T]
-    | Callable[
-        [Callable[P, Awaitable[T]] | Callable[Concatenate[Any, P], Awaitable[T]]],
-        AsyncSyncWrapper[P, T],
-    ]
-):
-    """Decorator to add sync() method to async functions.
+    Args:
+        bound: True for methods (have self parameter), False for standalone functions
 
     Usage:
         # For standalone functions
-        @add_sync
+        @add_sync(bound=False)
         async def my_func(x: int) -> str:
             return str(x)
 
-        # For methods - must specify bound=True
+        # For methods
         class MyClass:
             @add_sync(bound=True)
             async def my_method(self, x: int) -> str:
@@ -146,16 +113,10 @@ def add_sync[**P, T](
         result = obj.my_method.sync(42)
     """
 
-    def decorator(
-        f: Callable[P, Awaitable[T]] | Callable[Concatenate[Any, P], Awaitable[T]],
-    ) -> AsyncSyncWrapper[P, T]:
-        if not inspect.iscoroutinefunction(f):
-            msg = f"@add_sync can only be applied to async functions, got {f}"
+    def decorator[**P, T](func: Callable[P, Awaitable[T]]) -> AsyncSyncWrapper[P, T]:
+        if not inspect.iscoroutinefunction(func):
+            msg = f"@add_sync can only be applied to async functions, got {func}"
             raise TypeError(msg)
-        return AsyncSyncWrapper(f, is_bound=bound)
+        return AsyncSyncWrapper(func, is_bound=bound)
 
-    if func is None:
-        # Called as @add_sync(bound=True)
-        return decorator
-    # Called as @add_sync
-    return decorator(func)
+    return decorator
