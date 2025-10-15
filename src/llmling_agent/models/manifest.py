@@ -445,10 +445,8 @@ class AgentsManifest(Schema):
 
         for agent_config in self.agents.values():
             match agent_config.provider:
-                case "pydantic_ai":
-                    providers.add("pydantic_ai")
-                case BaseProviderConfig():
-                    providers.add(agent_config.provider.type)
+                case ("pydantic_ai" as typ) | BaseProviderConfig(type=typ):
+                    providers.add(typ)
         return providers
 
     @classmethod
