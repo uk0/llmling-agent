@@ -95,5 +95,5 @@ async with agent.run_stream("Analyze this.") as stream:
         print(message.content)
 
 # Synchronous operation (convenience wrapper)
-result = agent.run_sync("Quick question")
+result = agent.run.sync("Quick question")
 ```

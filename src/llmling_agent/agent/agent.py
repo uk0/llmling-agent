@@ -947,34 +947,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             )
             yield response  # pyright: ignore
 
-    def run_sync(
-        self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-        result_type: type[TResult] | None = None,
-        deps: TDeps | None = None,
-        model: ModelType = None,
-        store_history: bool = True,
-    ) -> ChatMessage[TResult]:
-        """Run agent synchronously (convenience wrapper).
-
-        Args:
-            prompt: User query or instruction
-            result_type: Optional type for structured responses
-            deps: Optional dependencies for the agent
-            model: Optional model override
-            store_history: Whether the message exchange should be added to the
-                           context window
-        Returns:
-            Result containing response and run information
-        """
-        coro = self.run(
-            *prompt,
-            model=model,
-            store_history=store_history,
-            result_type=result_type,
-        )
-        return self.task_manager.run_task_sync(coro)  # type: ignore
-
     async def run_job(
         self,
         job: Job[TDeps, str | None],

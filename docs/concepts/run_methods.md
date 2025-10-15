@@ -16,15 +16,15 @@ msg = await team.run("analyze this")  # parallel execution
 msg = await team_run.run("analyze this")  # sequential chain
 ```
 
-### run_sync()
+### run.sync()
 
 Synchronous convenience wrapper for `run()`:
 
 ```python
 # Useful in sync contexts or notebooks
-msg = agent.run_sync("analyze this")
-msg = team.run_sync("analyze this")
-msg = team_run.run_sync("analyze this")
+msg = agent.run.sync("analyze this")
+msg = team.run.sync("analyze this")
+msg = team_run.run.sync("analyze this")
 ```
 
 ### run_in_background()

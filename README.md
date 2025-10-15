@@ -751,7 +751,7 @@ def gen_docs(page: mk.MkPage):
     page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
     source_code = load_source_code_from_folder(...)
     page += mk.MkCode() # if you want to display source code
-    result = agent.run_sync("Describle Feature XYZ in MkDocs compatible markdown including examples.", content)
+    result = agent.run.sync("Describle Feature XYZ in MkDocs compatible markdown including examples.", content)
     page += result.content
 ```
 

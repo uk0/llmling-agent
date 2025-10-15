@@ -67,7 +67,7 @@ result = await agent.run("Hello")
 
 # ❌ Limited: Works, but not everything is initialized
 agent = Agent(...)
-result = agent.run_sync("Hello")
+result = agent.run.sync("Hello")
 
 # ✅ Correct - proper async initialization
 async with Agent(...) as agent:

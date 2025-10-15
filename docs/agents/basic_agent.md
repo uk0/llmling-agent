@@ -34,7 +34,7 @@ async with agent.run_stream("Count to 10") as stream:
         print(chunk)
 
 # Synchronous wrapper (convenience)
-result = agent.run_sync("Hello!")
+result = agent.run.sync("Hello!")
 ```
 
 ### Conversation Management

@@ -85,5 +85,5 @@ print("Token:", token)
 #     http_client=client,
 # )
 # agent = Agent(model=model)
-# result = agent.run_sync("test")
+# result = agent.run.sync("test")
 # print(result)

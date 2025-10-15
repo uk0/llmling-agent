@@ -103,7 +103,7 @@ async def test_agent_model_override():
 
 def test_sync_wrapper(test_agent: Agent[None]):
     """Test synchronous wrapper method."""
-    result = test_agent.run_sync(SIMPLE_PROMPT)
+    result = test_agent.run.sync(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
 
 

@@ -7,6 +7,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from anyenv import method_spawner
 from psygnal import Signal
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
@@ -85,6 +86,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     #     await self.connections.route_message(message, wait=wait_for_connections)
     #     return message
 
+    @method_spawner
     async def run(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
