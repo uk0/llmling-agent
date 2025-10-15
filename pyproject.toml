@@ -184,6 +184,7 @@ addopts = "-m 'not slow'"
 filterwarnings = [
   "ignore::DeprecationWarning:pydantic.*:",
   "ignore::DeprecationWarning:typer.*",
+  "ignore::DeprecationWarning:psygnal.*",
 ]
 log_cli = true
 log_date_format = "%Y-%m-%d %H:%M:%S"
