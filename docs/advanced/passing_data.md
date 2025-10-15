@@ -85,12 +85,11 @@ if await agent.provider.supports_feature("pdf"):
 The same input types work with streaming:
 
 ```python
-async with agent.run_stream(
+async for event in agent.run_stream(
     "Describe this image:",
     Path("photo.jpg")
-) as stream:
-    async for chunk in stream:
-        print(chunk, end="")
+) :
+    print(event)  # pydantic-ai events
 ```
 
 ## Provider-Specific Features

@@ -4,12 +4,6 @@ from __future__ import annotations
 
 import asyncio
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    UserPromptPart,
-)
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -43,38 +37,55 @@ async def test_agent_message_history(test_agent: Agent[None]):
 
 async def test_agent_streaming(test_agent: Agent[None]):
     """Test agent streaming response."""
-    stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
-    async with stream_ctx as stream:
-        collected = [str(message) async for message in stream.stream_output()]
-        assert "".join(collected) == TEST_RESPONSE
+    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+
+    from llmling_agent.agent.agent import StreamCompleteEvent
+
+    collected_chunks = []
+    final_message = None
+
+    async for event in test_agent.run_stream(SIMPLE_PROMPT):
+        match event:
+            case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                collected_chunks.append(delta)
+            case StreamCompleteEvent(message=message):
+                final_message = message
+
+    assert "".join(collected_chunks) == TEST_RESPONSE
+    assert final_message is not None
+    assert final_message.content == TEST_RESPONSE
 
 
 async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     """Test streaming pydantic-ai history."""
+    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+
+    from llmling_agent.agent.agent import StreamCompleteEvent
+
     history = [
         ChatMessage(role="user", content="Previous message"),
         ChatMessage(role="assistant", content="Previous response"),
     ]
     test_agent.conversation.set_history(history)
-    stream_ctx = test_agent.run_stream(SIMPLE_PROMPT)
-    async with stream_ctx as stream:
-        collected = [str(msg) async for msg in stream.stream_output()]
-        result = "".join(collected)
-        assert result == TEST_RESPONSE
 
-        # Verify we get the current exchange messages
-        new_messages = stream.new_messages()  # type: ignore
-        assert len(new_messages) == 2  # Current prompt + response  # noqa: PLR2004
+    collected_chunks = []
+    final_message = None
 
-        # Check prompt message
-        assert isinstance(new_messages[0], ModelRequest)
-        assert isinstance(new_messages[0].parts[0], UserPromptPart)
-        assert new_messages[0].parts[0].content == [SIMPLE_PROMPT]
+    async for event in test_agent.run_stream(SIMPLE_PROMPT):
+        match event:
+            case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                collected_chunks.append(delta)
+            case StreamCompleteEvent(message=message):
+                final_message = message
 
-        # Check response message
-        assert isinstance(new_messages[1], ModelResponse)
-        assert isinstance(new_messages[1].parts[0], TextPart)
-        assert new_messages[1].parts[0].content == TEST_RESPONSE
+    result = "".join(collected_chunks)
+    assert result == TEST_RESPONSE
+    assert final_message is not None
+    assert final_message.content == TEST_RESPONSE
+
+    # Check conversation history increased
+    messages = test_agent.conversation.get_history()
+    assert len(messages) == 4  # Original 2 + new 2  # noqa: PLR2004
 
 
 async def test_agent_concurrent_runs(test_agent: Agent[None]):

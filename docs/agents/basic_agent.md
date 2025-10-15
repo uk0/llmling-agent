@@ -29,9 +29,8 @@ result = await agent.run(
 )
 
 # Streaming responses
-async with agent.run_stream("Count to 10") as stream:
-    async for chunk in stream.stream_output():
-        print(chunk)
+async for event in agent.run_stream("Count to 10"):
+    print(chunk)  # Pydantic-AI event
 
 # Synchronous wrapper (convenience)
 result = agent.run.sync("Hello!")

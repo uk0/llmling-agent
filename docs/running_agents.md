@@ -97,9 +97,8 @@ async with Agent(...) as agent:
     print(result.data)
 
     # Streaming responses
-    async with await agent.run_stream("Long analysis...") as stream:
-        async for chunk in stream:
-            print(chunk.content, end="", flush=True)
+    async for event in agent.run_stream("Long analysis..."):
+        print(chunk)  # pydantic-ai event
 
     # Managing tools
     agent.tools.enable_tool("search")  # Enable specific tool

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
@@ -12,7 +11,7 @@ from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.convert import format_prompts
-from llmling_agent_providers.base import AgentProvider, ProviderResponse, StreamResult
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
 from llmling_agent_providers.human.utils import get_textual_streaming_app
 
 
@@ -23,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
-    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
+    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)
@@ -85,8 +84,7 @@ class HumanProvider(AgentProvider):
         )
         return ProviderResponse(content=content)
 
-    @asynccontextmanager
-    async def stream_response(
+    async def stream_events(
         self,
         *prompts: str | Content,
         message_id: str,
@@ -96,54 +94,76 @@ class HumanProvider(AgentProvider):
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamingResponseProtocol]:
-        """Stream response keystroke by keystroke."""
+    ) -> AsyncIterator[Any]:
+        """Stream response events keystroke by keystroke."""
+        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+        from pydantic_ai.run import AgentRunResultEvent
+
         prompt = await format_prompts(prompts)
         print(f"\n{prompt}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")
-        stream_result = StreamResult()
+
         chunk_queue: asyncio.Queue[str] = asyncio.Queue()
 
         async def handle_chunk(chunk: str):
             await chunk_queue.put(chunk)
 
-        # Setup streaming
-        async def wrapped_stream(*args, **kwargs):
-            while not stream_result.is_complete or not chunk_queue.empty():
-                try:
-                    chunk = await chunk_queue.get()
-                    self.chunk_streamed.emit(chunk, message_id)
-                    yield chunk
-                except asyncio.CancelledError:
-                    break
+        # Emit start event
+        from pydantic_ai.messages import PartStartEvent, TextPart
 
-        stream_result.stream = wrapped_stream  # type: ignore
+        yield PartStartEvent(index=0, part=TextPart(content=""))
+
+        collected_chunks = []
 
         try:
-            # Run textual app
+            # Run textual app in background
             textual_app = get_textual_streaming_app()
             app = textual_app(handle_chunk)
-            content = await app.run_async()
 
-            # Mark as complete and set final content
-            stream_result.is_complete = True
+            # Start the app task
+            app_task = asyncio.create_task(app.run_async())
+
+            # Stream chunks as they arrive
+            while not app_task.done():
+                try:
+                    chunk = await asyncio.wait_for(chunk_queue.get(), timeout=0.1)
+                    collected_chunks.append(chunk)
+                    # Emit delta event for each chunk
+                    yield PartDeltaEvent(
+                        index=0, delta=TextPartDelta(content_delta=chunk)
+                    )
+                except TimeoutError:
+                    continue
+
+            # Get final content from completed app
+            content = await app_task
+
+            # Emit any remaining chunks
+            while not chunk_queue.empty():
+                chunk = await chunk_queue.get()
+                collected_chunks.append(chunk)
+                yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=chunk))
 
             # Parse structured response if needed
             if result_type:
                 try:
                     content = result_type.model_validate_json(content)
-                    stream_result.is_structured = True
                 except Exception as e:
                     logger.exception("Failed to parse structured response")
                     error_msg = f"Invalid response format: {e}"
                     raise ToolError(error_msg) from e
-            stream_result.formatted_content = str(content)
-            yield stream_result  # type: ignore
 
-        finally:
-            # Cleanup if needed
-            stream_result.is_complete = True
+            final_content = str(content)
+
+            from pydantic_ai.run import AgentRunResult
+
+            result = AgentRunResult(output=final_content)
+            yield AgentRunResultEvent(result=result)
+
+        except Exception:
+            logger.exception("Error in human streaming")
+            raise
 
     async def handle_input(self, content: str):
         """Handle all human input."""

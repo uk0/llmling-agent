@@ -14,7 +14,6 @@ from uuid import uuid4
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
-from pydantic_ai.agent import EventStreamHandler
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -44,6 +43,8 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
+    from pydantic_ai.agent import EventStreamHandler
+    from pydantic_ai.messages import AgentStreamEvent
     from pydantic_ai.run import AgentRun
     from toprompt import AnyPromptType
 
@@ -68,7 +69,7 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
-    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
+    from llmling_agent_providers.base import UsageLimits
 
 from llmling_agent_providers.base import AgentProvider
 
@@ -80,40 +81,14 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 
 
-class SimpleStreamResponse:
-    """Simple streaming response that can replay collected chunks."""
+@dataclass(repr=False, kw_only=True)
+class StreamCompleteEvent:
+    """Event indicating streaming is complete with final message."""
 
-    def __init__(self, chunks: list[str], final_result=None, usage=None, model_name=None):
-        self.chunks = chunks
-        self.final_result = final_result
-        self._usage = usage
-        self.model_name = model_name
-        self.formatted_content = "".join(chunks)
-
-    async def stream_output(self):
-        """Stream the collected chunks for backward compatibility."""
-        for chunk in self.chunks:
-            yield chunk
-
-    async def stream_text(self):
-        """Stream text chunks (same as stream_output for simplicity)."""
-        async for chunk in self.stream_output():
-            yield chunk
-
-    def usage(self):
-        """Return usage information."""
-        return self._usage
-
-    def new_messages(self):
-        """Return new messages from the final result."""
-        if self.final_result and hasattr(self.final_result, "new_messages"):
-            return self.final_result.new_messages()
-        return []
-
-    @property
-    def is_complete(self) -> bool:
-        """Always complete since we collected all chunks."""
-        return True
+    message: ChatMessage[Any]
+    """The final chat message with all metadata."""
+    event_kind: Literal["stream_complete"] = "stream_complete"
+    """Event type identifier."""
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -346,7 +321,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         self._background_task: asyncio.Task[Any] | None = None
 
         # Forward provider signals
-        self._provider.chunk_streamed.connect(self.chunk_streamed)
         self._provider.model_changed.connect(self.model_changed)
         self._provider.tool_used.connect(self.tool_used)
         self._provider.model_changed.connect(self.model_changed)
@@ -585,7 +559,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
         name = self.name
         debug = self._debug
-        self._provider.chunk_streamed.disconnect(self.chunk_streamed)
         self._provider.model_changed.disconnect(self.model_changed)
         self._provider.tool_used.disconnect(self.tool_used)
         self._provider.model_changed.disconnect(self.model_changed)
@@ -607,7 +580,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self._provider.chunk_streamed.connect(self.chunk_streamed)
         self._provider.model_changed.connect(self.model_changed)
         self._provider.tool_used.connect(self.tool_used)
         self._provider.model_changed.connect(self.model_changed)
@@ -809,7 +781,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 devtools.debug(response_msg)
             return response_msg
 
-    @asynccontextmanager
     async def run_stream(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
@@ -822,7 +793,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
+    ) -> AsyncIterator[AgentStreamEvent | StreamCompleteEvent]:
         """Run agent with prompt and get a streaming response.
 
         Args:
@@ -840,7 +811,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
-            A streaming result to iterate over.
+            An async iterator yielding streaming events with final message embedded.
 
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
@@ -855,13 +826,12 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            # Collect chunks and metadata from events
+            # Collect chunks for final message construction
             chunks = []
-            final_result = None
             usage = None
             model_name = None
 
-            # Process events directly from provider
+            # Stream events directly from provider
             async for event in self._provider.stream_events(
                 *prompts,
                 message_id=message_id,
@@ -875,31 +845,26 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
                 from pydantic_ai.run import AgentRunResultEvent
 
+                # Pass through PydanticAI events and collect chunks
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                         chunks.append(delta)
                         self.chunk_streamed.emit(delta, message_id)
+                        yield event  # Pass through original event
                     case AgentRunResultEvent(result=result):
-                        final_result = result
                         usage = result.usage()
                         model_name = result.response.model_name
+                        # Don't yield AgentRunResultEvent, we'll send our own final event
+                    case _:
+                        yield event  # Pass through other events
 
-            # Create simple response object for backward compatibility
-            stream = SimpleStreamResponse(
-                chunks=chunks,
-                final_result=final_result,
-                usage=usage,
-                model_name=model_name,
-            )
-
-            yield stream
-
-            # Post-processing (same as before)
+            # Build final chat message
             cost_info = None
             if model_name and usage and model_name != "test":
                 cost_info = await TokenCost.from_usage(usage, model_name)
+
             response_msg = ChatMessage[TResult](
-                content=cast(TResult, stream.formatted_content),  # type: ignore
+                content=cast(TResult, "".join(chunks)),  # type: ignore
                 role="assistant",
                 name=self.name,
                 model=model_name,
@@ -907,8 +872,12 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 conversation_id=user_msg.conversation_id,
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
-                # provider_extra=stream.provider_extra or {},
             )
+
+            # Yield final event with embedded message
+            yield StreamCompleteEvent(message=response_msg)
+
+            # Post-processing
             self.message_sent.emit(response_msg)
             if store_history:
                 self.conversation.add_chat_messages([user_msg, response_msg])

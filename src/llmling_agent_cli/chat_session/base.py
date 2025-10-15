@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import pathlib
-import time
 from typing import TYPE_CHECKING, Any, Literal, overload
-from uuid import uuid4
 
 from platformdirs import user_data_dir
 from psygnal import Signal
 
 from llmling_agent.agent.conversation import ConversationManager
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.now import get_now
 from llmling_agent_cli.chat_session.exceptions import ChatSessionConfigError
@@ -219,35 +217,21 @@ class AgentPoolView:
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        async with self._agent.run_stream(content) as stream_result:
-            # Stream intermediate chunks
-            async for response in stream_result.stream_output():
-                yield ChatMessage[str](
-                    content=str(response),
-                    role="assistant",
-                    name=self._agent.name,
-                )
+        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
-            # Final message with complete metrics after stream completes
-            start_time = time.perf_counter()
+        from llmling_agent.agent.agent import StreamCompleteEvent
 
-            # Get usage info if available
-            usage = stream_result.usage()
-            model = stream_result.response.model_name  # type: ignore
-            cost_info = (
-                await TokenCost.from_usage(usage, model) if usage and model else None
-            )
-
-            # Create final status message with all metrics
-            final_msg = ChatMessage[str](
-                content="",  # Empty content for final status message
-                role="assistant",
-                name=self._agent.name,
-                model=model,
-                message_id=str(uuid4()),
-                cost_info=cost_info,
-                response_time=time.perf_counter() - start_time,
-            )
+        async for event in self._agent.run_stream(content):
+            match event:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                    yield ChatMessage[str](
+                        content=delta,
+                        role="assistant",
+                        name=self._agent.name,
+                    )
+                case StreamCompleteEvent(message=message):
+                    # Use the embedded final message for metrics
+                    final_msg = message
 
             # Update session state
             self._state.message_count += 2  # User and assistant messages

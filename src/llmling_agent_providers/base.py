@@ -7,13 +7,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Protocol,
     TypeVar,
-    runtime_checkable,
 )
 
 from psygnal import Signal
-from pydantic_ai import RunUsage, _agent_graph
+from pydantic_ai import _agent_graph
 from pydantic_ai.result import FinalResult
 from pydantic_graph import End
 
@@ -22,13 +20,12 @@ from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator
+    from collections.abc import AsyncIterator
     from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
     from pydantic_ai.run import AgentRun
     import tokonomics
-    from tokonomics.pydanticai_cost import Usage
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelProtocol, ModelType
@@ -51,49 +48,6 @@ class ProviderResponse:
     model_name: str = ""
     cost_and_usage: TokenCost | None = None
     provider_extra: dict[str, Any] | None = None
-
-
-@runtime_checkable
-class StreamingResponseProtocol[TResult](Protocol):
-    """Protocol for streaming responses.
-
-    This matches PydanticAI's StreamedRunResult interface to make transition easier,
-    but lives in our core package to remove the dependency.
-    """
-
-    model_name: str | None
-    is_complete: bool
-    formatted_content: TResult = None  # type: ignore
-
-    def stream_output(self) -> AsyncGenerator[TResult]:
-        """Stream individual chunks as they arrive."""
-        ...
-
-    def stream_text(self, delta: bool = False) -> AsyncGenerator[str]:
-        """Stream individual chunks as they arrive."""
-        ...
-
-    def usage(self) -> Usage:
-        """Get token usage statistics if available."""
-        ...
-
-        # def cost(self) -> Usage:
-        #     """Get token usage statistics if available."""
-        #     ...
-
-
-class StreamResult:
-    """Result of a streaming operation."""
-
-    def __init__(self):
-        self.stream = None
-        self.is_complete = False
-        self.formatted_content = ""
-        self.is_structured = False
-        self.model_name = "human"
-
-    def usage(self) -> RunUsage:
-        return RunUsage()
 
 
 @dataclass
@@ -120,7 +74,6 @@ class AgentProvider[TDeps]:
     """Base class for agent providers."""
 
     tool_used = Signal(ToolCallInfo)
-    chunk_streamed = Signal(str, str)
     model_changed = Signal(object)  # Model | None
     NAME: str
 
@@ -197,20 +150,6 @@ class AgentProvider[TDeps]:
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""
-        raise NotImplementedError
-
-    def stream_response(
-        self,
-        *prompts: str | Content,
-        message_id: str,
-        message_history: list[ChatMessage],
-        result_type: type[Any] | None = None,
-        model: ModelType = None,
-        tools: list[Tool] | None = None,
-        usage_limits: UsageLimits | None = None,
-        **kwargs: Any,
-    ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
-        """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
 
     def stream_events(

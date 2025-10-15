@@ -90,9 +90,8 @@ Different ways to run the agent:
 result = await agent.run("Analyze this code.")
 
 # Stream responses
-async with agent.run_stream("Analyze this.") as stream:
-    async for message in stream:
-        print(message.content)
+async for event in agent.run_stream("Analyze this."):
+    print(event)
 
 # Synchronous operation (convenience wrapper)
 result = agent.run.sync("Quick question")

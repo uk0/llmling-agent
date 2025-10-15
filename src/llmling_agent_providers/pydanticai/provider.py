@@ -15,7 +15,6 @@ import pydantic_ai._function_schema
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     ModelResponse,
-    PartDeltaEvent,
     PartStartEvent,
     TextPartDelta,
     ToolCallPart,
@@ -491,13 +490,7 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
                         tool_part, tool_dict, message_id
                     )
                     self.tool_used.emit(call_info)
-                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                    self.chunk_streamed.emit(delta, message_id)
-
             yield event
-
-        # Stream is complete - emit empty chunk to signal completion
-        self.chunk_streamed.emit("", message_id)
 
         # Reset model signal if needed
         if model:

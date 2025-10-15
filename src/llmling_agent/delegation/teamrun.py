@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
-
-from pydantic_ai import RunUsage
 
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
@@ -20,16 +17,17 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Sequence
     from datetime import datetime
     import os
 
     import PIL.Image
+    from pydantic_ai.messages import AgentStreamEvent
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
     from llmling_agent.agent import AnyAgent
-    from llmling_agent_providers.base import StreamingResponseProtocol
+    from llmling_agent.agent.agent import StreamCompleteEvent
 
 
 logger = get_logger(__name__)
@@ -217,87 +215,59 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             for connection in connections:
                 connection.disconnect()
 
-    @asynccontextmanager
-    async def chain_stream(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
-        require_all: bool = True,
-        **kwargs: Any,
-    ) -> AsyncIterator[StreamingResponseProtocol]:
-        """Stream results through chain of team members."""
-        from llmling_agent.agent import Agent, StructuredAgent
-        from llmling_agent.delegation import TeamRun
-        from llmling_agent_providers.base import StreamingResponseProtocol
-
-        async with AsyncExitStack() as stack:
-            streams: list[StreamingResponseProtocol[str]] = []
-            current_message = prompts
-
-            for agent in self.agents:  # Set up all streams
-                try:
-                    assert isinstance(agent, TeamRun | Agent | StructuredAgent), (
-                        "Cannot stream teams!"
-                    )
-                    stream = await stack.enter_async_context(
-                        agent.run_stream(*current_message, **kwargs)
-                    )
-                    streams.append(stream)  # type: ignore
-                    # Wait for complete response for next agent
-                    async for chunk in stream.stream_output():
-                        current_message = chunk
-                        if stream.is_complete:
-                            current_message = (stream.formatted_content,)  # type: ignore
-                            break
-                except Exception as e:
-                    if require_all:
-                        msg = f"Chain broken at {agent.name}: {e}"
-                        raise ValueError(msg) from e
-                    logger.warning("Chain handler %s failed: %s", agent.name, e)
-
-            # Create a stream-like interface for the chain
-            class ChainStream(StreamingResponseProtocol[str]):
-                def __init__(self):
-                    self.streams = streams
-                    self.current_stream_idx = 0
-                    self.is_complete = False
-                    self.model_name = None
-
-                def usage(self) -> RunUsage:
-                    return RunUsage(input_tokens=0, output_tokens=0)
-
-                async def stream_output(self) -> AsyncGenerator[str]:  # type: ignore
-                    for idx, stream in enumerate(self.streams):
-                        self.current_stream_idx = idx
-                        async for chunk in stream.stream_output():
-                            yield chunk
-                            if idx == len(self.streams) - 1 and stream.is_complete:
-                                self.is_complete = True
-
-                async def stream_text(
-                    self,
-                    delta: bool = False,
-                ) -> AsyncGenerator[str]:
-                    for idx, stream in enumerate(self.streams):
-                        self.current_stream_idx = idx
-                        async for chunk in stream.stream_text(delta=delta):
-                            yield chunk
-                            if idx == len(self.streams) - 1 and stream.is_complete:
-                                self.is_complete = True
-
-            yield ChainStream()
-
-    @asynccontextmanager
     async def run_stream(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        require_all: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamingResponseProtocol[TResult]]:
-        """Stream responses through the chain.
+    ) -> AsyncIterator[tuple[AnyAgent, AgentStreamEvent | StreamCompleteEvent]]:
+        """Stream responses through the chain of team members.
 
-        Provides same interface as Agent.run_stream.
+        Args:
+            prompts: Input prompts to process through the chain
+            require_all: If True, fail if any agent fails. If False,
+                         continue with remaining agents.
+            kwargs: Additional arguments passed to each agent
+
+        Yields:
+            Tuples of (agent, event) where agent is the Agent instance
+            and event is the streaming event.
         """
-        async with self.chain_stream(*prompts, **kwargs) as stream:
-            yield stream
+        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+
+        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent.agent import StreamCompleteEvent
+        from llmling_agent.delegation import TeamRun
+
+        current_message = prompts
+        collected_content = []
+
+        for agent in self.agents:
+            try:
+                assert isinstance(agent, TeamRun | Agent | StructuredAgent), (
+                    "Cannot stream teams!"
+                )
+
+                agent_content = []
+                async for event in agent.run_stream(*current_message, **kwargs):
+                    match event:
+                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                            agent_content.append(delta)
+                            collected_content.append(delta)
+                            yield (agent, event)  # Yield tuple with agent context
+                        case StreamCompleteEvent(message=message):
+                            # Use complete response as input for next agent
+                            current_message = (message.content,)
+                            yield (agent, event)  # Yield tuple with agent context
+                        case _:
+                            yield (agent, event)  # Yield tuple with agent context
+
+            except Exception as e:
+                if require_all:
+                    msg = f"Chain broken at {agent.name}: {e}"
+                    logger.exception(msg)
+                    raise ValueError(msg) from e
+                logger.warning("Chain handler %s failed: %s", agent.name, e)
 
 
 if __name__ == "__main__":

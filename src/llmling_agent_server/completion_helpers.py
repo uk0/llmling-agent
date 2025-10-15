@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import anyenv
+from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
 
 from llmling_agent.log import get_logger
 
@@ -39,21 +40,22 @@ async def stream_response(
             "choices": [choice],
         }
         yield f"data: {anyenv.dump_json(first_chunk)}\n\n"
-        async with agent.run_stream(content) as stream:
-            async for chunk in stream.stream_text(delta=True):
-                # Skip empty chunks
-                if not chunk:
-                    continue
-                delta = {"content": chunk}
-                choice = {"index": 0, "delta": delta, "finish_reason": None}
-                chunk_data = {
-                    "id": response_id,
-                    "object": "chat.completion.chunk",
-                    "created": created,
-                    "model": request.model,
-                    "choices": [choice],
-                }
-                yield f"data: {anyenv.dump_json(chunk_data)}\n\n"
+        async for event in agent.run_stream(content):
+            match event:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                    # Skip empty chunks
+                    if not chunk:
+                        continue
+                    delta = {"content": chunk}
+                    choice = {"index": 0, "delta": delta, "finish_reason": None}
+                    chunk_data = {
+                        "id": response_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": request.model,
+                        "choices": [choice],
+                    }
+                    yield f"data: {anyenv.dump_json(chunk_data)}\n\n"
         final_chunk = {
             "id": response_id,
             "object": "chat.completion.chunk",

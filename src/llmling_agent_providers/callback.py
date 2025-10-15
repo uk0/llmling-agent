@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
 import inspect
 from typing import TYPE_CHECKING, Any
 
@@ -21,7 +20,11 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent_config.providers import ProcessorCallback
-    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
+    from llmling_agent_providers.base import UsageLimits
+
+from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+
+from llmling_agent.agent.agent import StreamCompleteEvent
 
 
 logger = get_logger(__name__)
@@ -85,8 +88,7 @@ class CallbackProvider(AgentProvider[None]):
             msg = f"Processor error in {name!r}: {e}"
             raise RuntimeError(msg) from e
 
-    @asynccontextmanager
-    async def stream_response(
+    async def stream_events(
         self,
         *prompts: str | Content,
         message_id: str,
@@ -95,40 +97,26 @@ class CallbackProvider(AgentProvider[None]):
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[StreamingResponseProtocol]:
-        """Simulate streaming by yielding complete result as one chunk."""
-
-        class SingleChunkStream:
-            def __init__(self, content: str):
-                self.content = content
-                self.is_complete = False
-                self._streamed = False
-                self.formatted_content = content
-                self.model_name = "processor"
-
-            def usage(self):
-                return None
-
-            async def stream(self):
-                if not self._streamed:
-                    self._streamed = True
-                    yield self.content
-                self.is_complete = True
-
-            async def stream_text(self, delta: bool = False):
-                if not self._streamed:
-                    self._streamed = True
-                    yield self.content
-                self.is_complete = True
+    ) -> AsyncIterator[Any]:
+        """Stream response events - simulate streaming by yielding complete result."""
+        from pydantic_ai.messages import PartStartEvent, TextPart
+        from pydantic_ai.run import AgentRunResult, AgentRunResultEvent
 
         try:
+            # Emit start event
+            yield PartStartEvent(index=0, part=TextPart(content=""))
+
             # Get result using normal response generation
             result = await self.generate_response(
                 *prompts, message_id=message_id, message_history=message_history
             )
-            # we already save history etc with generate_response
-            stream_result = SingleChunkStream(str(result.content))
-            yield stream_result  # type: ignore
+
+            content = str(result.content)
+            yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=content))
+
+            # Emit final result
+            agent_result = AgentRunResult(output=content)
+            yield AgentRunResultEvent(result=agent_result)
 
         except Exception as e:
             logger.exception("Processor streaming failed")
@@ -147,8 +135,11 @@ if __name__ == "__main__":
         # Normal usage
         result = await uppercase.run("hello")
         print(result.content)  # "HELLO"
-        async with uppercase.run_stream("hello") as stream:
-            async for chunk in stream.stream_output():
-                print(f"Chunk: {chunk}")  # Will print "HELLO" once
+        async for event in uppercase.run_stream("hello"):
+            match event:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                    print(f"Chunk: {chunk}")
+                case StreamCompleteEvent(message=message):
+                    print(f"Complete: {message.content}")
 
     asyncio.run(main())

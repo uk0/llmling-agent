@@ -79,13 +79,8 @@ result = await agent.run_job(
 Stream responses (supported by Agents and TeamRuns):
 
 ```python
-async with agent.run_stream(
-    "analyze",
-    store_history=True,
-    model="gpt-5",
-) as stream:
-    async for chunk in stream.stream_output():
-        print(chunk)
+async for event in agent.run_stream("analyze", model="gpt-5"):
+    print(event)
 ```
 
 Note: Parallel Teams don't support streaming as it wouldn't provide any benefit over run_iter().
