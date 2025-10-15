@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Protocol,
+    TypeVar,
+    runtime_checkable,
+)
 
 from psygnal import Signal
 from pydantic_ai import _agent_graph
@@ -15,9 +22,10 @@ from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, AsyncIterator
     from contextlib import AbstractAsyncContextManager
 
+    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
     from pydantic_ai.run import AgentRun
     import tokonomics
     from tokonomics.pydanticai_cost import Usage
@@ -180,6 +188,15 @@ class AgentProvider[TDeps]:
     def stream_response(
         self,
         *prompts: str | Content,
+        usage_limits: UsageLimits | None = None,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
+        """Stream a response. Must be implemented by providers."""
+        raise NotImplementedError
+
+    def stream_events(
+        self,
+        *prompts: str | Content,
         message_id: str,
         message_history: list[ChatMessage],
         result_type: type[Any] | None = None,
@@ -187,7 +204,7 @@ class AgentProvider[TDeps]:
         tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
-    ) -> AbstractAsyncContextManager[StreamingResponseProtocol]:
+    ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent]:
         """Stream a response. Must be implemented by providers."""
         raise NotImplementedError
 
