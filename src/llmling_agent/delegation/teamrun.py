@@ -237,16 +237,13 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
         from llmling_agent.agent import Agent, StructuredAgent
         from llmling_agent.agent.agent import StreamCompleteEvent
-        from llmling_agent.delegation import TeamRun
 
         current_message = prompts
         collected_content = []
 
         for agent in self.agents:
             try:
-                assert isinstance(agent, TeamRun | Agent | StructuredAgent), (
-                    "Cannot stream teams!"
-                )
+                assert isinstance(agent, Agent | StructuredAgent), "Cannot stream teams!"
 
                 agent_content = []
                 async for event in agent.run_stream(*current_message, **kwargs):
