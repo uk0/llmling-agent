@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
-from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
+from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 import logfire
@@ -19,8 +18,7 @@ from pydantic_ai.messages import (
     TextPartDelta,
     ToolCallPart,
 )
-from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.run import AgentRun
+from pydantic_ai.models import KnownModelName
 from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
@@ -362,68 +360,6 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             case _:
                 msg = f"Invalid model type: {model}"
                 raise ValueError(msg)
-
-    @asynccontextmanager
-    async def iterate_run[TResult](
-        self,
-        *prompts: str | Content,  # Provider signature
-        message_id: str,
-        message_history: list[ChatMessage[Any]],  # Use Any generic
-        tools: list[Tool] | None = None,
-        result_type: type[TResult] | None = None,
-        usage_limits: UsageLimits | None = None,
-        model: ModelType = None,
-        system_prompt: str | None = None,
-        **kwargs: Any,  # Analogous kwargs
-    ) -> AsyncIterator[AgentRun[TDeps, TResult]]:  # Use Any generic for now
-        """Starts an iterable agent run using pydantic-ai's Agent.iter."""
-        agent = await self.get_agent(system_prompt or "", tools=tools or [])
-        use_model = model or self.model
-        original_model_signal = None
-        if model:
-            original_model_signal = self.model
-            if isinstance(use_model, str):
-                use_model = infer_model(use_model)
-            # Don't emit model_changed here, agent.iter takes model directly
-            # self.model_changed.emit(use_model) # NO EMIT NEEDED HERE
-        elif isinstance(use_model, str):
-            use_model = infer_model(use_model)
-
-        limits = asdict(usage_limits) if usage_limits else {}
-        pydantic_limits = PydanticAiUsageLimits(**limits)
-        resolved_model_name = (
-            use_model.model_name if isinstance(use_model, Model) else str(use_model)
-        )
-
-        try:
-            converted_prompts = await convert_prompts_to_user_content(prompts)
-            model_messages = [to_model_request(m) for m in message_history]
-            msg = "Starting PydanticAI agent iteration run_id=%s with model=%s"
-            logger.debug(msg, message_id, resolved_model_name)
-            async with agent.iter(
-                converted_prompts,
-                deps=self._context,
-                message_history=model_messages,
-                model=model or self.model,  # type: ignore
-                output_type=result_type or str,
-                model_settings=self.model_settings,  # type: ignore
-                usage_limits=pydantic_limits,
-                **kwargs,
-            ) as agent_run:
-                # 7. Post-processing (Minimal for iter, just yield)
-                # Add model name to the run object if possible/needed?
-                # setattr(agent_run, 'model_name', resolved_model_name)
-
-                yield cast(AgentRun[Any, Any], agent_run)  # Yield the run object
-        except Exception as e:
-            # Catch potential errors from argument mismatches in agent.iter
-            logger.exception("Error calling agent.iter")
-            msg = f"Iteration setup error: {e}"
-            raise RuntimeError(msg) from e
-        finally:
-            if original_model_signal and isinstance(original_model_signal, str):
-                original_model_signal = infer_model(original_model_signal)
-            # self.model_changed.emit(original_model_signal)
 
     def _create_tool_call_info(
         self, tool_part: ToolCallPart, tool_dict: dict, message_id: str

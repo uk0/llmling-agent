@@ -21,10 +21,8 @@ from llmling_agent.tools import ToolCallInfo
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from contextlib import AbstractAsyncContextManager
 
     from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
-    from pydantic_ai.run import AgentRun
     import tokonomics
 
     from llmling_agent.agent.context import AgentContext
@@ -95,20 +93,6 @@ class AgentProvider[TDeps]:
 
     def set_model(self, model: ModelType):
         """Default no-op implementation for setting model."""
-
-    def iterate_run[TResult](
-        self,
-        *prompts: str | Content,
-        message_id: str,
-        message_history: list[ChatMessage],
-        result_type: type[TResult] | None = None,
-        model: ModelType = None,
-        tools: list[Tool] | None = None,
-        usage_limits: UsageLimits | None = None,
-        **kwargs: Any,
-    ) -> AbstractAsyncContextManager[AgentRun[TDeps, TResult]]:
-        """Stream a response. Must be implemented by providers."""
-        raise NotImplementedError
 
     @property
     def context(self) -> AgentContext[TDeps]:

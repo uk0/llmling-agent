@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     import PIL.Image
     from pydantic_ai.agent import EventStreamHandler
     from pydantic_ai.messages import AgentStreamEvent
-    from pydantic_ai.run import AgentRun
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import AgentContext, AnyAgent
@@ -983,115 +982,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             logger.exception(msg)
             raise JobError(msg) from e
 
-    @asynccontextmanager
-    @logfire.instrument("Calling Agent.iterate_run: {prompts}", allow_generator=True)
-    async def iterate_run(
-        self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-        message_id: str | None = None,
-        message_history: list[ChatMessage[Any]] | None = None,
-        tools: list[Tool] | None = None,
-        result_type: type[TResult] | None = None,
-        usage_limits: UsageLimits | None = None,
-        model: ModelType = None,
-        system_prompt: str | None = None,
-        tool_choice: str | list[str] | None = None,
-        conversation_id: str | None = None,
-        store_history: bool = True,
-    ) -> AsyncIterator[AgentRun[TDeps, TResult]]:
-        """Run the agent step-by-step, yielding an object to observe the execution graph.
-
-        Args:
-            *prompts: User query/instructions (text, images, paths, BasePrompts).
-            message_id: Optional unique ID for this run attempt. Generated if None.
-            message_history: Optional list of messages to replace current history.
-            tools: Optional sequence of tools to use instead of agent's default tools.
-            result_type: Optional type for structured responses.
-            usage_limits: Optional usage limits (provider support may vary).
-            model: Optional model override for this run.
-            system_prompt: Optional system prompt override for this run.
-            tool_choice: Filter agent's tools by name (ignored if `tools` is provided).
-            conversation_id: Optional ID to associate with the conversation context.
-            store_history: Whether to store the conversation in agent's history.
-
-        Yields:
-            An AgentRun object for iterating over execution nodes.
-
-        Example: (Same as before)
-            async with agent.iterate_run("Capital of France?") as agent_run:
-                async for node in agent_run:
-                    print(f"Processing: {type(node).__name__}")
-                print(f"Final result: {agent_run.result.output}")
-
-        Note: (Same as before regarding history management)
-        """
-        run_message_id = message_id or str(uuid4())
-        start_time = time.perf_counter()
-        logger.info("Starting agent iteration run_id=%s", run_message_id)
-        converted_prompts = await convert_prompts(prompts)
-        if not converted_prompts:
-            msg = "No prompts provided for iteration."
-            logger.error(msg)
-            raise ValueError(msg)
-
-        # Prepare user message for conversation history
-        user_msg = None
-        if store_history:
-            user_msg, _ = await self.pre_run(*prompts)
-
-        if tools is None:
-            effective_tools = await self.tools.get_tools(
-                state="enabled", names=tool_choice
-            )
-        else:
-            effective_tools = tools  # Use the direct override
-
-        self.set_result_type(result_type)
-        effective_system_prompt = (
-            system_prompt
-            if system_prompt is not None
-            else await self.sys_prompts.format_system_prompt(self)
-        )
-        effective_message_history = (
-            message_history
-            if message_history is not None
-            else self.conversation.get_history()
-        )
-        try:
-            async with self._provider.iterate_run(
-                *converted_prompts,
-                # Pass consistent arguments to the provider
-                message_id=run_message_id,
-                message_history=effective_message_history,
-                tools=effective_tools,
-                result_type=result_type,
-                usage_limits=usage_limits,
-                model=model,
-                system_prompt=effective_system_prompt,
-            ) as agent_run:
-                yield agent_run
-                # Store conversation history if requested
-                if store_history and user_msg and agent_run.result:
-                    response_msg = ChatMessage[TResult](
-                        content=agent_run.result.output,
-                        role="assistant",
-                        name=self.name,
-                        model=agent_run.result.response.model_name,
-                        message_id=run_message_id,
-                        conversation_id=conversation_id or user_msg.conversation_id,
-                        response_time=time.perf_counter() - start_time,
-                    )
-                    self.conversation.add_chat_messages([user_msg, response_msg])
-                    msg = "Stored conversation history for run_id=%s"
-                    logger.debug(msg, run_message_id)
-
-            logger.info("Agent iteration run_id=%s completed.", run_message_id)
-
-        except Exception as e:
-            logger.exception("Agent iteration run_id=%s failed.", run_message_id)
-            self.run_failed.emit(f"Agent iteration failed: {e}", e)
-            raise
-
     async def run_in_background(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
@@ -1381,8 +1271,7 @@ if __name__ == "__main__":
     async def main():
         async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
             agent.tool_used.connect(print)
-            async with agent.iterate_run(sys_prompt) as stream:
-                async for chunk in stream:
-                    print(chunk)
+            async for chunk in agent.run_stream(sys_prompt):
+                print(chunk)
 
     asyncio.run(main())
