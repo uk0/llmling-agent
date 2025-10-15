@@ -32,7 +32,6 @@ agents:
       type: "human"
       name: "human-reviewer"  # optional instance name
       timeout: 300  # seconds to wait for response (null = wait forever)
-      show_context: true  # whether to show conversation context
 ```
 
 ## Callback Provider

@@ -75,8 +75,6 @@ async def list_available_agents(  # noqa: D417
     """
     from pydantic_ai.tools import RunContext
 
-    from llmling_agent_providers.base import AgentLLMProvider
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     if not ctx.pool:
@@ -93,7 +91,7 @@ async def list_available_agents(  # noqa: D417
         lines.extend([
             f"name: {name}",
             f"description: {agent.description or 'No description'}",
-            f"type: {'ai' if isinstance(agent.provider, AgentLLMProvider) else 'human'}",
+            f"model: {agent.model_name}",
             "---",
         ])
 

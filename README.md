@@ -635,7 +635,6 @@ agents:
   human_agent:
     provider: "human"  # Complete human control
     timeout: 300  # Optional timeout in seconds
-    show_context: true  # Show conversation context
 ```
 
 You can also use LLMling-models for more sophisticated human integration:

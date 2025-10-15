@@ -85,7 +85,7 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
             yield Static(self.node.name, classes="name")
             match self.node:
                 case Agent() | StructuredAgent():
-                    exra = self.node.provider.NAME
+                    exra = self.node.name
                 case BaseTeam():
                     exra = " | ".join(node.name for node in self.node.agents)
                 case _:
