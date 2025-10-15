@@ -14,6 +14,7 @@ from uuid import uuid4
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
+from pydantic_ai.agent import EventStreamHandler
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -146,6 +147,7 @@ class AgentKwargs(TypedDict, total=False):
     # Behavior Control
     input_provider: InputProvider | None
     debug: bool
+    event_handlers: Sequence[EventStreamHandler] | None
 
 
 class Agent[TDeps = None](MessageNode[TDeps, str]):
@@ -203,6 +205,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         debug: bool = False,
+        event_handlers: Sequence[EventStreamHandler] | None = None,
     ):
         """Initialize agent with runtime configuration.
 
@@ -233,6 +236,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             input_provider: Provider for human input (tool confirmation / HumanProviders)
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
+            event_handlers: Sequence of event handlers to register with the agent
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import ConversationManager
@@ -281,6 +285,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
+        self._event_handlers = event_handlers or []
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
         self.tools.add_provider(self.mcp)
@@ -525,6 +530,15 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
     def name(self, value: str):
         self._provider.name = value
         self._name = value
+
+    @property
+    def event_handler(self) -> EventStreamHandler:
+        async def merged(*args: Any, **kwargs: Any) -> Any:
+            return await asyncio.gather(*[
+                h(*args, **kwargs) for h in self._event_handlers
+            ])
+
+        return merged
 
     @property
     def context(self) -> AgentContext[TDeps]:
