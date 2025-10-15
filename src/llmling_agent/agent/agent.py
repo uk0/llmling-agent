@@ -808,7 +808,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
             wait_for_connections: Whether to wait for connected agents to complete
-
         Returns:
             An async iterator yielding streaming events with final message embedded.
 
