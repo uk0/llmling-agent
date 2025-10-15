@@ -13,7 +13,7 @@ from typing import (
 )
 
 from psygnal import Signal
-from pydantic_ai import _agent_graph
+from pydantic_ai import RunUsage, _agent_graph
 from pydantic_ai.result import FinalResult
 from pydantic_graph import End
 
@@ -77,9 +77,23 @@ class StreamingResponseProtocol[TResult](Protocol):
         """Get token usage statistics if available."""
         ...
 
-    # def cost(self) -> Usage:
-    #     """Get token usage statistics if available."""
-    #     ...
+        # def cost(self) -> Usage:
+        #     """Get token usage statistics if available."""
+        #     ...
+
+
+class StreamResult:
+    """Result of a streaming operation."""
+
+    def __init__(self):
+        self.stream = None
+        self.is_complete = False
+        self.formatted_content = ""
+        self.is_structured = False
+        self.model_name = "human"
+
+    def usage(self) -> RunUsage:
+        return RunUsage()
 
 
 @dataclass

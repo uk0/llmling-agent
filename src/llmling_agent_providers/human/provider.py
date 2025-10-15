@@ -12,10 +12,7 @@ from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.convert import format_prompts
-from llmling_agent_providers.base import (
-    AgentProvider,
-    ProviderResponse,
-)
+from llmling_agent_providers.base import AgentProvider, ProviderResponse, StreamResult
 from llmling_agent_providers.human.utils import get_textual_streaming_app
 
 
@@ -26,10 +23,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
-    from llmling_agent_providers.base import (
-        StreamingResponseProtocol,
-        UsageLimits,
-    )
+    from llmling_agent_providers.base import StreamingResponseProtocol, UsageLimits
 
 
 logger = get_logger(__name__)
@@ -80,18 +74,7 @@ class HumanProvider(AgentProvider):
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
-        """Get response through human input.
-
-        Args:
-            prompts: Text / Image Content to respond to
-            message_id: Message id to use for the response
-            message_history: Message history
-            result_type: Optional type for structured responses
-            model: Model override (unused for human)
-            system_prompt: System prompt from SystemPrompts manager
-            usage_limits: Usage limits for the model
-            kwargs: Additional arguments for human (unused)
-        """
+        """Get response through human inut."""
         # Show prompt and get response
         formatted = await format_prompts(prompts)
         content = await self.context.get_input_provider().get_input(
@@ -119,19 +102,6 @@ class HumanProvider(AgentProvider):
         print(f"\n{prompt}")
         if result_type:
             print(f"(Please provide response as {result_type.__name__})")
-
-        # Create a StreamingResponseProtocol-like object
-        class StreamResult:
-            def __init__(self):
-                self.stream = None
-                self.is_complete = False
-                self.formatted_content = ""
-                self.is_structured = False
-                self.model_name = "human"
-
-            def usage(self):
-                return None
-
         stream_result = StreamResult()
         chunk_queue: asyncio.Queue[str] = asyncio.Queue()
 
@@ -181,9 +151,6 @@ class HumanProvider(AgentProvider):
 
         if not content.strip():
             return
-
-        # Store for generate_response if needed
-        self._last_response = content
 
         try:
             if content.startswith("/"):

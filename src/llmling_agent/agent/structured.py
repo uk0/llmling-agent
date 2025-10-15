@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Self, TypeVar, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
 
 from pydantic import ValidationError
 
@@ -39,11 +39,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-TResult = TypeVar("TResult", default=str)
-TDeps = TypeVar("TDeps", default=None)
 
-
-class StructuredAgent[TDeps, TResult](MessageNode[TDeps, TResult]):
+class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     """Wrapper for Agent that enforces a specific result type.
 
     This wrapper ensures the agent always returns results of the specified type.
