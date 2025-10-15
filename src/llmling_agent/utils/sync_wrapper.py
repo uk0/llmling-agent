@@ -28,15 +28,34 @@ class AsyncSyncWrapper[**P, T]:
         """Descriptor protocol for method binding."""
         if instance is None:
             return self
-        # Create bound wrapper only if this is a bound method
-        if self._is_bound:
-            bound = type(self)(self._func, is_bound=True)
-            bound._instance = instance
-            return bound
-        return self
+        # Always create bound wrapper to track instance for validation
+        bound = type(self)(self._func, is_bound=self._is_bound)
+        bound._instance = instance
+        return bound
 
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
         """Async call - normal behavior."""
+        # Validate bound/unbound usage before making the call
+        if self._instance is not None and not self._is_bound:
+            # Error: method used but declared as unbound function
+            msg = (
+                f"Method {self._func.__name__} was decorated with bound=False "
+                "but is being called as a bound method. Use bound=True for methods."
+            )
+            raise TypeError(msg)
+        if self._instance is None and self._is_bound:
+            # Check if this looks like a method signature but no instance
+            sig = inspect.signature(self._func)
+            params = list(sig.parameters.values())
+            if params and params[0].name in ("self", "cls"):
+                msg = (
+                    f"Function {self._func.__name__} was decorated with bound=True "
+                    "but is being called as a standalone function. Use bound=False "
+                    "for standalone functions."
+                )
+                raise TypeError(msg)
+
+        # Make the actual call
         if self._instance is not None and self._is_bound:
             # We're bound to an instance, prepend it to args
             return await self._func(self._instance, *args, **kwargs)
