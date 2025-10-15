@@ -867,8 +867,8 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                         self.chunk_streamed.emit(delta, message_id)
                     case AgentRunResultEvent(result=result):
                         final_result = result
-                        usage = result.usage() if hasattr(result, "usage") else None
-                        model_name = getattr(result, "model_name", None)
+                        usage = result.usage()
+                        model_name = result.response.model_name
 
             # Create simple response object for backward compatibility
             stream = SimpleStreamResponse(
@@ -882,7 +882,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
             # Post-processing (same as before)
             cost_info = None
-            if model_name and usage:
+            if model_name and usage and model_name != "test":
                 cost_info = await TokenCost.from_usage(usage, model_name)
             response_msg = ChatMessage[TResult](
                 content=cast(TResult, stream.formatted_content),  # type: ignore
