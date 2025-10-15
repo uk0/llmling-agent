@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AsyncExitStack, suppress
+import logging
 from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
@@ -43,7 +44,7 @@ async def message_handler(
     | mcp.ServerNotification
     | Exception,
 ):
-    """Noop message handler for now."""
+    """Handle MCP server messages."""
     import mcp
     from mcp.shared.session import RequestResponder
     from mcp.types import ClientResult, EmptyResult
@@ -56,19 +57,36 @@ async def message_handler(
             return
     match message.root:
         case mcp.types.CancelledNotification(params=params):
-            print(params)
+            logger.info("MCP operation cancelled: %s", params)
         case mcp.ProgressNotification(params=params):
-            print(params)
+            logger.debug("MCP progress: %s", params)
         case mcp.LoggingMessageNotification(params=params):
-            print(params)
+            # Map MCP log levels to Python logging integer levels
+            level_map = {
+                "debug": logging.DEBUG,
+                "info": logging.INFO,
+                "notice": logging.INFO,
+                "warning": logging.WARNING,
+                "error": logging.ERROR,
+                "critical": logging.CRITICAL,
+                "alert": logging.CRITICAL,
+                "emergency": logging.CRITICAL,
+            }
+
+            log_level = level_map[params.level]
+            logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
+            mcp_logger = get_logger(logger_name)
+            log_msg = str(params.data) if params.data else "MCP server log message"
+            mcp_logger.log(log_level, log_msg)
+
         case mcp.ResourceUpdatedNotification(uri=uri):
-            print(uri)
+            logger.info("MCP resource updated: %s", uri)
         case mcp.types.ResourceListChangedNotification(params=params):
-            print(params)
+            logger.info("MCP resource list changed: %s", params)
         case mcp.types.ToolListChangedNotification(params=params):
-            print(params)
+            logger.info("MCP tool list changed: %s", params)
         case mcp.types.PromptListChangedNotification(params=params):
-            print(params)
+            logger.info("MCP prompt list changed: %s", params)
 
 
 class MCPClient:
