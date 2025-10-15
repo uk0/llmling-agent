@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AsyncExitStack, suppress
+from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
 
@@ -15,7 +16,12 @@ if TYPE_CHECKING:
 
     import mcp
     from mcp import ClientSession
-    from mcp.client.session import MessageHandlerFnT, RequestContext
+    from mcp.client.session import (
+        ElicitationFnT,
+        MessageHandlerFnT,
+        RequestContext,
+        SamplingFnT,
+    )
     from mcp.shared.session import ProgressFnT, RequestResponder
     from mcp.types import Tool, Tool as MCPTool
     from pydantic_ai import RunContext
@@ -71,16 +77,8 @@ class MCPClient:
     def __init__(
         self,
         transport_mode: TransportType = "stdio",
-        elicitation_callback: Callable[
-            [RequestContext, mcp.types.ElicitRequestParams],
-            Awaitable[mcp.types.ElicitResult | mcp.types.ErrorData],
-        ]
-        | None = None,
-        sampling_callback: Callable[
-            [RequestContext, mcp.types.CreateMessageRequestParams],
-            Awaitable[mcp.types.CreateMessageResult | mcp.types.ErrorData],
-        ]
-        | None = None,
+        elicitation_callback: ElicitationFnT | None = None,
+        sampling_callback: SamplingFnT | None = None,
         progress_handler: ProgressHandler | None = None,
         message_handler: MessageHandlerFnT | None = None,
         accessible_roots: list[str] | None = None,
@@ -193,8 +191,6 @@ class MCPClient:
             context: RequestContext,
         ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
             """List accessible filesystem roots."""
-            from pathlib import Path
-
             import mcp
 
             roots = []
