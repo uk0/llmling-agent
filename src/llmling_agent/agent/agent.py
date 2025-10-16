@@ -11,6 +11,7 @@ import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, cast, overload
 from uuid import uuid4
 
+from anyenv import method_spawner
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
@@ -928,6 +929,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             )
             yield response  # pyright: ignore
 
+    @method_spawner
     async def run_job(
         self,
         job: Job[TDeps, str | None],
