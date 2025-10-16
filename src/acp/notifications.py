@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
@@ -133,9 +134,9 @@ class ACPNotifications:
         old_text: str,
         new_text: str,
         *,
-        line: int | None = None,
         status: ToolCallStatus = "completed",
         title: str | None = None,
+        changed_lines: Sequence[int] | None = None,
     ) -> None:
         """Send a notification with file edit content.
 
@@ -144,16 +145,24 @@ class ACPNotifications:
             path: File path being edited
             old_text: Original file content
             new_text: New file content
-            line: Line number being edited
             status: Progress status (default: 'completed')
             title: Optional title
+            changed_lines: List of line numbers where changes occurred (1-based)
         """
         file_edit_content = FileEditToolCallContent(
             path=path,
             old_text=old_text,
             new_text=new_text,
         )
-        locations = [ToolCallLocation(path=path, line=line)]
+
+        # Create locations for changed lines or fallback to file location
+        if changed_lines:
+            locations = [
+                ToolCallLocation(path=path, line=line_num) for line_num in changed_lines
+            ]
+        else:
+            locations = [ToolCallLocation(path=path)]
+
         await self.tool_call_progress(
             tool_call_id=tool_call_id,
             status=status,

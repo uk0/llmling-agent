@@ -294,8 +294,8 @@ class ACPFileSystemProvider(ResourceProvider):
             # Write the new content
             await self.session.requests.write_text_file(resolved_path, new_content)
             success_msg = f"Successfully edited {Path(path).name}: {description}"
-            diff_lines = get_changed_lines(original_content, new_content, resolved_path)
-            if lines_changed := len(diff_lines) > 0:
+            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+            if lines_changed := len(changed_line_numbers):
                 success_msg += f" ({lines_changed} lines changed)"
 
             await self.session.notifications.file_edit_progress(
@@ -304,6 +304,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 old_text=original_content,
                 new_text=new_content,
                 status="completed",
+                changed_lines=changed_line_numbers,
             )
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
@@ -415,12 +416,17 @@ class ACPFileSystemProvider(ResourceProvider):
                         partial_content = "".join(new_content_parts)
                         try:  # Send progress update with current diff
                             if len(partial_content.strip()) > 0:
+                                # Get line numbers for streaming progress
+                                progress_line_numbers = get_changed_line_numbers(
+                                    original_content, partial_content
+                                )
                                 await self.session.notifications.file_edit_progress(
                                     tool_call_id=ctx.tool_call_id,
                                     path=resolved_path,
                                     old_text=original_content,
                                     new_text=partial_content,
                                     status="in_progress",
+                                    changed_lines=progress_line_numbers,
                                 )
                         except Exception as e:  # noqa: BLE001
                             logger.warning("Failed to send progress update: %s", e)
@@ -452,13 +458,17 @@ class ACPFileSystemProvider(ResourceProvider):
                 success_msg = f"Successfully edited {Path(path).name} using AI agent"
                 success_msg += f" ({original_lines} → {new_lines} lines)"
 
-            # Send final completion update with complete diff
+            # Get changed line numbers for precise UI highlighting
+            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+
+            # Send final completion update with complete diff and line numbers
             await self.session.notifications.file_edit_progress(
                 tool_call_id=ctx.tool_call_id,
                 path=resolved_path,
                 old_text=original_content,
                 new_text=new_content,
                 status="completed",
+                changed_lines=changed_line_numbers,
             )
 
         except Exception as e:  # noqa: BLE001
@@ -615,3 +625,40 @@ def get_changed_lines(original_content: str, new_content: str, path: str) -> lis
     new = new_content.splitlines(keepends=True)
     diff = list(difflib.unified_diff(old, new, fromfile=path, tofile=path, lineterm=""))
     return [line for line in diff if line.startswith(("+", "-"))]
+
+
+def get_changed_line_numbers(original_content: str, new_content: str) -> list[int]:
+    """Extract line numbers where changes occurred for ACP UI highlighting.
+
+    Similar to Claude Code's line tracking for precise change location reporting.
+    Returns line numbers in the new content where changes happened.
+
+    Args:
+        original_content: Original file content
+        new_content: Modified file content
+
+    Returns:
+        List of line numbers (1-based) where changes occurred in new content
+    """
+    old_lines = original_content.splitlines(keepends=True)
+    new_lines = new_content.splitlines(keepends=True)
+
+    # Use SequenceMatcher to find changed blocks
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
+    changed_line_numbers = set()
+
+    for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+        if tag in ("replace", "insert", "delete"):
+            # For replacements and insertions, mark lines in new content
+            # For deletions, mark the position where deletion occurred
+            if tag == "delete":
+                # Mark the line where deletion occurred (or next line if at end)
+                line_num = min(j1 + 1, len(new_lines))
+                if line_num > 0:
+                    changed_line_numbers.add(line_num)
+            else:
+                # Mark all affected lines in new content
+                for line_num in range(j1 + 1, j2 + 1):  # Convert to 1-based
+                    changed_line_numbers.add(line_num)
+
+    return sorted(changed_line_numbers)
