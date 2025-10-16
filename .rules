@@ -2,7 +2,7 @@
 
 ## Core Technologies
 
-- **Python 3.12+**: Modern Python with full type hints and async support
+- **Python 3.13+**: Modern Python with full type hints and async support
 - **Pydantic v2**: Type validation and serialization throughout the stack
 - **UV**: Fast Python package manager and project management
 - **Async/Await**: Fully async architecture using asyncio
