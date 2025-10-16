@@ -304,9 +304,11 @@ class MCPClient:
             raise RuntimeError(msg)
         return await self.session.get_prompt(name, arguments)
 
-    def create_tool_callable(self, tool: MCPTool) -> Callable[..., Awaitable[str]]:
+    def create_tool_callable(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
         from schemez.functionschema import FunctionSchema
+
+        from llmling_agent import Tool
 
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
@@ -336,7 +338,22 @@ class MCPClient:
         tool_callable.__annotations__ = fn_schema.get_annotations()
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
-        return tool_callable
+        meta = {"mcp_tool": tool.name}
+        tool_info = Tool.from_callable(tool_callable, source="mcp", metadata=meta)
+
+        # Log the final signature for debugging
+        import inspect
+
+        logger.info(
+            "Tool %s: Final signature: %s", tool.name, inspect.signature(tool_callable)
+        )
+        logger.info(
+            "Tool %s: Final annotations: %s",
+            tool.name,
+            getattr(tool_callable, "__annotations__", {}),
+        )
+
+        return tool_info
 
     async def call_tool(
         self,

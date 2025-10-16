@@ -256,15 +256,12 @@ class MCPManager(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get all tools from all connected servers."""
-        from llmling_agent.tools.base import Tool
 
-        async def get_client_tools(client) -> list[Tool]:
+        async def get_client_tools(client: MCPClient) -> list[Tool]:
             client_tools: list[Tool] = []
             for tool in client._available_tools:
                 try:
-                    fn = client.create_tool_callable(tool)
-                    meta = {"mcp_tool": tool.name}
-                    tool_info = Tool.from_callable(fn, source="mcp", metadata=meta)
+                    tool_info = client.create_tool_callable(tool)
                     client_tools.append(tool_info)
                     logger.debug("Registered MCP tool: %s", tool.name)
                 except Exception:
