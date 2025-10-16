@@ -66,19 +66,6 @@ await agent.run(
 )
 ```
 
-## Model Support
-
-Content type support depends on the model and provider:
-
-```python
-# Check vision support
-if await agent.provider.supports_feature("vision"):
-    await agent.run(Path("image.jpg"))
-
-# Check PDF support
-if await agent.provider.supports_feature("pdf"):
-    await agent.run(Path("document.pdf"))
-```
 
 ## Streaming Response
 
@@ -92,19 +79,6 @@ async for event in agent.run_stream(
     print(event)  # pydantic-ai events
 ```
 
-## Provider-Specific Features
-
-Some providers may support additional content types:
-
-```python
-# Example: Provider supporting audio input
-if await agent.provider.supports_feature("audio"):
-    await agent.run(Path("recording.mp3"))
-
-# Example: Provider supporting video input
-if await agent.provider.supports_feature("video"):
-    await agent.run(Path("clip.mp4"))
-```
 
 ## Input Conversion
 
