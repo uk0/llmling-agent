@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
@@ -17,6 +18,10 @@ from acp.schema import (
     UserMessageChunk,
 )
 from llmling_agent.log import get_logger
+
+
+if TYPE_CHECKING:
+    from acp.acp_types import SessionUpdate
 
 
 logger = get_logger(__name__)
@@ -50,7 +55,7 @@ class DebugSendTextCommand(SlashedCommand):
             content = TextContentBlock(type="text", text=text)
 
             if chunk_type == "agent":
-                update = AgentMessageChunk(content=content)
+                update: SessionUpdate = AgentMessageChunk(content=content)
             elif chunk_type == "user":
                 update = UserMessageChunk(content=content)
             elif chunk_type == "thought":
@@ -225,7 +230,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
 
                     if update_type == "agent_message_chunk":
                         content = TextContentBlock(**update_data["content"])
-                        update = AgentMessageChunk(content=content)
+                        update: SessionUpdate = AgentMessageChunk(content=content)
                     elif update_type == "user_message_chunk":
                         content = TextContentBlock(**update_data["content"])
                         update = UserMessageChunk(content=content)
