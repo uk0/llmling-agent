@@ -7,7 +7,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
-from anyenv.calling.merge_streams import merge_streams
+from aioitertools.asyncio import as_generated
 from toprompt import to_prompt
 
 from llmling_agent.delegation.base_team import BaseTeam
@@ -224,7 +224,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         ]
 
         # Merge all agent streams
-        async for agent_event_tuple in merge_streams(*agent_streams):
+        async for agent_event_tuple in as_generated(agent_streams):
             yield agent_event_tuple
 
     async def run_job[TJobResult](
