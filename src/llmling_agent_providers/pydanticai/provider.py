@@ -13,7 +13,6 @@ from pydantic_ai import Agent as PydanticAgent
 import pydantic_ai._function_schema
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
-    ModelResponse,
     PartStartEvent,
     TextPartDelta,
     ToolCallPart,
@@ -316,18 +315,17 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             # Get the actual model name from pydantic-ai response
             resolved_model = result.response.model_name or ""
             usage = result.usage()
-            responses = [m for m in new_msgs if isinstance(m, ModelResponse)]
             try:
-                cost_sum = sum(i.cost().total_price for i in responses)
+                total_price = result.response.cost().total_price
             except (LookupError, AssertionError):
                 logger.debug("Error calculating cost for %r", resolved_model)
-                cost_sum = Decimal(0)
+                total_price = Decimal(0)
             token_usage = TokenUsage(
                 total=usage.total_tokens,
                 prompt=usage.input_tokens,
                 completion=usage.output_tokens,
             )
-            cost_info = TokenCost(token_usage=token_usage, total_cost=Decimal(cost_sum))
+            cost_info = TokenCost(token_usage=token_usage, total_cost=total_price)
             return ProviderResponse(
                 content=result.output,
                 tool_calls=tool_calls,
