@@ -377,7 +377,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                     await coro
             if runtime_ref:
                 self.tools.add_provider(RuntimeResourceProvider(runtime_ref))
-            for provider in await self.context.config.get_toolsets():
+            for provider in self.context.config.get_toolsets():
                 self.tools.add_provider(provider)
         except Exception as e:
             # Clean up in reverse order

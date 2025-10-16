@@ -181,7 +181,7 @@ class AgentConfig(NodeConfig):
             data["model"] = {"type": "string", "identifier": model}
         return data
 
-    async def get_toolsets(self) -> list[ResourceProvider]:
+    def get_toolsets(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent."""
         providers: list[ResourceProvider] = []
 
@@ -191,10 +191,8 @@ class AgentConfig(NodeConfig):
                 provider = toolset_config.get_provider()
                 providers.append(provider)
             except Exception as e:
-                logger.exception(
-                    "Failed to create provider for toolset: %r", toolset_config
-                )
-                msg = f"Failed to create provider for toolset: {e}"
+                msg = "Failed to create provider for toolset"
+                logger.exception(msg, toolset_config)
                 raise ValueError(msg) from e
 
         return providers
