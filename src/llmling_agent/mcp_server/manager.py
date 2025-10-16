@@ -100,14 +100,16 @@ class MCPManager(ResourceProvider):
 
     async def __aenter__(self) -> Self:
         try:
-            # Setup directly provided servers
-            for server in self.servers:
-                await self.setup_server(server)
-
-            # Setup servers from context if available
+            # Setup directly provided servers and context servers concurrently
+            tasks = [self.setup_server(server) for server in self.servers]
             if self.context and self.context.config and self.context.config.mcp_servers:
-                for server in self.context.config.get_mcp_servers():
-                    await self.setup_server(server)
+                tasks.extend(
+                    self.setup_server(server)
+                    for server in self.context.config.get_mcp_servers()
+                )
+
+            if tasks:
+                await asyncio.gather(*tasks)
 
         except Exception as e:
             # Clean up in case of error
@@ -256,53 +258,75 @@ class MCPManager(ResourceProvider):
         """Get all tools from all connected servers."""
         from llmling_agent.tools.base import Tool
 
-        tools: list[Tool] = []
-        for client in self.clients.values():
+        async def get_client_tools(client) -> list[Tool]:
+            client_tools: list[Tool] = []
             for tool in client._available_tools:
                 try:
                     fn = client.create_tool_callable(tool)
                     meta = {"mcp_tool": tool.name}
                     tool_info = Tool.from_callable(fn, source="mcp", metadata=meta)
-                    tools.append(tool_info)
+                    client_tools.append(tool_info)
                     logger.debug("Registered MCP tool: %s", tool.name)
                 except Exception:
                     msg = "Failed to create tool from MCP tool: %s"
                     logger.exception(msg, tool.name)
                     continue
+            return client_tools
 
-        return tools
+        results = await asyncio.gather(
+            *[get_client_tools(client) for client in self.clients.values()],
+            return_exceptions=False,
+        )
+        return [tool for client_tools in results for tool in client_tools]
 
     async def list_prompts(self) -> list[StaticPrompt]:
         """Get all available prompts from MCP servers."""
-        prompts = []
-        for client in self.clients.values():
+
+        async def get_client_prompts(client) -> list[StaticPrompt]:
             try:
                 result = await client.list_prompts()
+                client_prompts: list[StaticPrompt] = []
+                for prompt in result:
+                    try:
+                        converted = await convert_mcp_prompt(client, prompt)
+                        client_prompts.append(converted)
+                    except Exception:
+                        logger.exception("Failed to convert prompt: %s", prompt.name)
             except Exception:
                 logger.exception("Failed to get prompts from MCP server")
-            for prompt in result.prompts:
-                try:
-                    converted = await convert_mcp_prompt(client, prompt)
-                    prompts.append(converted)
-                except Exception:
-                    logger.exception("Failed to convert prompt: %s", prompt.name)
-        return prompts
+                return []
+            else:
+                return client_prompts
+
+        results = await asyncio.gather(*[
+            get_client_prompts(client) for client in self.clients.values()
+        ])
+        return [prompt for client_prompts in results for prompt in client_prompts]
 
     async def list_resources(self) -> list[ResourceInfo]:
         """Get all available resources from MCP servers."""
-        resources = []
-        for client in self.clients.values():
+
+        async def get_client_resources(client) -> list[ResourceInfo]:
             try:
                 result = await client.list_resources()
+                client_resources: list[ResourceInfo] = []
+                for resource in result:
+                    try:
+                        converted = await convert_mcp_resource(resource)
+                        client_resources.append(converted)
+                    except Exception:
+                        logger.exception("Failed to convert resource: %s", resource.name)
             except Exception:
                 logger.exception("Failed to get resources from MCP server")
-            for resource in result.resources:
-                try:
-                    converted = await convert_mcp_resource(resource)
-                    resources.append(converted)
-                except Exception:
-                    logger.exception("Failed to convert resource: %s", resource.name)
-        return resources
+                return []
+            else:
+                return client_resources
+
+        results = await asyncio.gather(
+            *[get_client_resources(client) for client in self.clients.values()],
+            return_exceptions=False,
+        )
+        return [resource for client_resources in results for resource in client_resources]
 
     async def cleanup(self) -> None:
         """Clean up all MCP connections."""
