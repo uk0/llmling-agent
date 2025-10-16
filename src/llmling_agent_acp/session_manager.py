@@ -104,6 +104,7 @@ class ACPSessionManager:
                 command_bridge=self.command_bridge,
                 acp_agent=acp_agent,
                 client_capabilities=client_capabilities,
+                session_manager=self,
             )
 
             # Initialize MCP servers if any are provided

@@ -63,6 +63,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.content import BaseContent
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
+    from llmling_agent_acp.session_manager import ACPSessionManager
 
     # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
@@ -112,6 +113,9 @@ class ACPSession:
 
     client_capabilities: ClientCapabilities | None = None
     """Client capabilities for tool registration"""
+
+    manager: ACPSessionManager | None = None
+    """Session manager for managing sessions. Used for session management commands."""
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
