@@ -31,7 +31,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, has_argument_type
-from llmling_agent_providers.base import AgentLLMProvider, ProviderResponse
+from llmling_agent_providers.base import AgentProvider, ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
     get_tool_calls,
@@ -84,7 +84,7 @@ def _is_call_ctx(annotation: Any) -> bool:
 pydantic_ai._function_schema._is_call_ctx = _is_call_ctx  # type: ignore
 
 
-class PydanticAIProvider(AgentLLMProvider[Any]):
+class PydanticAIProvider(AgentProvider[Any]):
     """Provider using pydantic-ai as backend."""
 
     NAME = "pydantic_ai"
@@ -116,11 +116,12 @@ class PydanticAIProvider(AgentLLMProvider[Any]):
             model_settings: Additional model-specific settings
         """
         super().__init__(
-            model=model,
-            model_settings=model_settings,
-            debug=debug,
+            name=name,
             context=context,
+            debug=debug,
         )
+        self.model_settings = model_settings or {}
+        self._model = model
         self._kwargs: dict[str, Any] = dict(
             model=model,
             name=name,
@@ -130,6 +131,9 @@ class PydanticAIProvider(AgentLLMProvider[Any]):
             output_retries=output_retries,
             defer_model_check=defer_model_check,
         )
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(model={self.model_name})"
 
     async def get_model_names(self) -> list[str]:
         """Get list of all known model names."""

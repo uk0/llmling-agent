@@ -161,35 +161,3 @@ class AgentProvider[TDeps]:
                 return bool(caps and caps.supports_vision)
             case _:
                 return False
-
-
-class AgentLLMProvider[TDeps](AgentProvider[TDeps]):
-    """Provider using LLM backend."""
-
-    def __init__(
-        self,
-        model_settings: dict[str, Any] | None = None,
-        model: str | ModelProtocol | None = None,
-        **kwargs: Any,
-    ):
-        self.model_settings = model_settings or {}
-        self._model = model
-        super().__init__(**kwargs)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(model={self.model_name})"
-
-    def set_model(self, model: ModelType):
-        """Set the model for this agent.
-
-        Args:
-            model: New model to use (name or instance)
-
-        Emits:
-            model_changed signal with the new model
-        """
-        old_name = self.model_name
-        self._model = model
-        self.model_changed.emit(model)
-        if old_name:
-            logger.debug("Changed model from %s to %s", old_name, self.model_name)
