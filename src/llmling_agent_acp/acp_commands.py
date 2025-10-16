@@ -51,11 +51,9 @@ class ListSessionsCommand(SlashedCommand):
         session = ctx.context.session
 
         # Check if we have access to session manager
-        if not hasattr(session, "session_manager") or not session.session_manager:
+        if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
             return
-
-        session_manager = session.session_manager
 
         # If no filter specified, show both
         if not active and not stored:
@@ -67,7 +65,7 @@ class ListSessionsCommand(SlashedCommand):
             # Show active sessions
             if active:
                 output_lines.append("### 🟢 Active Sessions")
-                active_sessions = session_manager._sessions
+                active_sessions = session.manager._sessions
 
                 if not active_sessions:
                     output_lines.append("*No active sessions*\n")
@@ -84,19 +82,19 @@ class ListSessionsCommand(SlashedCommand):
                     output_lines.append("")
 
             # Show stored sessions
-            if stored and session_manager._persistent_manager:
+            if stored and session.manager._persistent_manager:
                 output_lines.append("### 💾 Stored Sessions")
 
                 try:
                     stored_sessions = (
-                        await session_manager._persistent_manager.store.list_sessions()
+                        await session.manager._persistent_manager.store.list_sessions()
                     )
 
                     if not stored_sessions:
                         output_lines.append("*No stored sessions*\n")
                     else:
                         for session_id in stored_sessions:
-                            store = session_manager._persistent_manager.store
+                            store = session.manager._persistent_manager.store
                             session_data = await store.load_session(session_id)
                             if session_data:
                                 msg_count = len(session_data.conversation)
@@ -152,17 +150,15 @@ class LoadSessionCommand(SlashedCommand):
             no_replay: Load session without replaying conversation
         """
         session = ctx.context.session
-        if not hasattr(session, "session_manager") or not session.session_manager:
+        if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
             return
 
-        session_manager = session.session_manager
-
         try:
             # Check if session exists
-            if session_manager._persistent_manager:
+            if session.manager._persistent_manager:
                 session_data = (
-                    await session_manager._persistent_manager.load_session_data(
+                    await session.manager._persistent_manager.load_session_data(
                         session_id
                     )
                 )
@@ -247,15 +243,13 @@ class SaveSessionCommand(SlashedCommand):
         """
         session = ctx.context.session
 
-        if not hasattr(session, "session_manager") or not session.session_manager:
+        if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
             return
 
-        session_manager = session.session_manager
-
         try:
-            if session_manager._persistent_manager:
-                await session_manager._persistent_manager.save_session(session)
+            if session.manager._persistent_manager:
+                await session.manager._persistent_manager.save_session(session)
 
                 msg_count = len(getattr(session, "_conversation_history", []))
                 await ctx.output.print(
@@ -297,17 +291,15 @@ class DeleteSessionCommand(SlashedCommand):
             confirm: Skip confirmation prompt
         """
         session = ctx.context.session
-        if not hasattr(session, "session_manager") or not session.session_manager:
+        if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
             return
 
-        session_manager = session.session_manager
-
         try:
-            if session_manager._persistent_manager:
+            if session.manager._persistent_manager:
                 # Check if session exists
                 session_data = (
-                    await session_manager._persistent_manager.load_session_data(
+                    await session.manager._persistent_manager.load_session_data(
                         session_id
                     )
                 )
@@ -329,7 +321,7 @@ class DeleteSessionCommand(SlashedCommand):
                     return
 
                 # Delete the session
-                await session_manager._persistent_manager.store.delete_session(session_id)
+                await session.manager._persistent_manager.store.delete_session(session_id)
                 await ctx.output.print(
                     f"🗑️  **Session `{session_id}` deleted successfully**"
                 )
