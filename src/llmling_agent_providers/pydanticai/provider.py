@@ -268,11 +268,31 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
             self.model_changed.emit(use_model)
+
+        # Create event stream handler for real-time tool signals
+        tool_dict = {i.name: i for i in tools or []}
+
+        async def event_stream_handler(ctx, events):
+            async for event in events:
+                if isinstance(event, FunctionToolCallEvent):
+                    # Extract tool call info and emit signal immediately
+                    call = event.part
+                    if call.tool_name in tool_dict:
+                        tool_call_info = self._create_tool_call_info(
+                            call, tool_dict, message_id
+                        )
+                        tool_call_info.message_id = message_id
+                        tool_call_info.context_data = (
+                            self._context.data if self._context else None
+                        )
+
+                        self.tool_used.emit(tool_call_info)
+
         try:
             # Convert prompts to pydantic-ai format
             converted_prompts = await convert_prompts_to_user_content(prompts)
 
-            # Run with complete history
+            # Run with complete history and event handler
             to_use = model or self.model
             to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
             limits = asdict(usage_limits) if usage_limits else {}
@@ -284,16 +304,16 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
                 output_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
                 usage_limits=PydanticAiUsageLimits(**limits),
+                event_stream_handler=event_stream_handler,
             )
 
-            # Extract tool calls and set message_id
+            # Extract tool calls for final response
+            # (signals already emitted via event handler)
             new_msgs = result.new_messages()
-            tool_dict = {i.name: i for i in tools or []}
             tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
             for call in tool_calls:
                 call.message_id = message_id
                 call.context_data = self._context.data if self._context else None
-                self.tool_used.emit(call)
 
             # Get the actual model name from pydantic-ai response
             resolved_model = result.response.model_name or ""
@@ -541,4 +561,39 @@ if __name__ == "__main__":
         print(f"Final result available: {final_result is not None}")
         print(f"Model: {final_result.response.model_name}")
 
-    asyncio.run(main())
+    # Test real-time tool signal emission
+    async def test_tool_signals():
+        print("\nTesting real-time tool signal emission...")
+
+        # Create provider with signal handler
+        signals_received = []
+
+        def on_tool_used(tool_info):
+            signals_received.append(tool_info)
+            print(f"🔧 Signal received: {tool_info.tool_name}({tool_info.args})")
+
+        provider = PydanticAIProvider()
+        provider.tool_used.connect(on_tool_used)
+
+        # Create a simple tool
+        def get_weather(city: str) -> str:
+            return f"It's sunny in {city}"
+
+        tools = [Tool.from_callable(get_weather)]
+
+        try:
+            response = await provider.generate_response(
+                "What's the weather like in Paris?",
+                message_id="test-123",
+                model="openai:gpt-4o-mini",
+                message_history=[],
+                tools=tools,
+            )
+            print(f"Response: {response.content}")
+            print(f"Signals received: {len(signals_received)}")
+
+        except Exception as e:  # noqa: BLE001
+            print(f"Error: {e}")
+
+    # asyncio.run(main())
+    asyncio.run(test_tool_signals())
