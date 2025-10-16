@@ -8,6 +8,8 @@ from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
 
+from pydantic_ai import RunContext  # noqa: TC002
+
 from llmling_agent.log import get_logger
 
 
@@ -25,7 +27,6 @@ if TYPE_CHECKING:
     )
     from mcp.shared.session import ProgressFnT, RequestResponder
     from mcp.types import Tool, Tool as MCPTool
-    from pydantic_ai import RunContext
 
     from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent_config.pool_server import TransportType
@@ -290,11 +291,15 @@ class MCPClient:
             # Only include parameters that are either required or have non-None values
             schema_props = tool.inputSchema.get("properties", {})
             required_props = set(tool.inputSchema.get("required", []))
+            logger.debug("Tool %s: Original kwargs: %s", tool.name, kwargs)
+            logger.debug("Tool %s: Schema props: %s", tool.name, schema_props)
+            logger.debug("Tool %s: Required props: %s", tool.name, required_props)
             filtered_kwargs = {
                 k: v
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
+            logger.debug("Tool %s: Filtered kwargs: %s", tool.name, filtered_kwargs)
             return await self.call_tool(
                 tool.name, filtered_kwargs, tool_call_id=ctx.tool_call_id
             )
