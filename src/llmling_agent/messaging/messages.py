@@ -8,8 +8,9 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar
 from uuid import uuid4
 
-from genai_prices import Usage, calc_price
+from genai_prices import calc_price
 from pydantic import BaseModel
+import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -20,7 +21,7 @@ from llmling_agent.utils.now import get_now
 if TYPE_CHECKING:
     from datetime import datetime
 
-    import tokonomics
+    from pydantic_ai import RunUsage
 
 
 TContent = TypeVar("TContent", str, BaseModel)
@@ -108,7 +109,7 @@ class TokenCost:
     @classmethod
     async def from_usage(
         cls,
-        usage: tokonomics.Usage | None,
+        usage: RunUsage | None,
         model: str,
     ) -> TokenCost | None:
         """Create result from usage data.
@@ -122,10 +123,7 @@ class TokenCost:
             TokenCost if usage data available, None otherwise
         """
         if not (
-            usage
-            and usage.total_tokens is not None
-            and usage.input_tokens is not None
-            and usage.output_tokens is not None
+            usage and usage.input_tokens is not None and usage.output_tokens is not None
         ):
             logger.debug("Missing token counts in Usage object")
             return None
@@ -136,24 +134,27 @@ class TokenCost:
             completion=usage.output_tokens,
         )
         logger.debug("Token usage: %s", token_usage)
-        # cost = await tokonomics.calculate_token_cost(
-        #     model,
-        #     usage.input_tokens,
-        #     usage.output_tokens,
-        # )
-        # total_cost = cost.total_cost if cost else 0.0
 
         # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
-        if model == "None":
+        if model in {"None", "test"}:
             price = Decimal(0)
         else:
             parts = model.split(":", 1)
-            price_data = calc_price(
-                Usage(input_tokens=usage.input_tokens, output_tokens=usage.output_tokens),
-                model_ref=parts[1] if len(parts) > 1 else parts[0],
-                provider_id=parts[0] if len(parts) > 1 else "openai",
-            )
-            price = price_data.total_price
+            try:
+                price_data = calc_price(
+                    usage,
+                    model_ref=parts[1] if len(parts) > 1 else parts[0],
+                    provider_id=parts[0] if len(parts) > 1 else "openai",
+                )
+                price = price_data.total_price
+            except Exception:  # noqa: BLE001
+                cost = await tokonomics.calculate_token_cost(
+                    model,
+                    usage.input_tokens,
+                    usage.output_tokens,
+                )
+                price = Decimal(cost.total_cost if cost else 0)
+
         return cls(token_usage=token_usage, total_cost=price)
 
 

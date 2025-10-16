@@ -20,6 +20,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import KnownModelName
 from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
+from tokonomics import calculate_token_cost
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.common_types import ModelProtocol
@@ -315,10 +316,17 @@ class PydanticAIProvider[TDeps](AgentLLMProvider[TDeps]):
             # Get the actual model name from pydantic-ai response
             resolved_model = result.response.model_name or ""
             usage = result.usage()
-            try:
-                total_price = result.response.cost().total_price
-            except (LookupError, AssertionError):
-                logger.debug("Error calculating cost for %r", resolved_model)
+            if model and model != "test":
+                try:
+                    total_price = result.response.cost().total_price
+                except (LookupError, AssertionError):
+                    try:
+                        costs = await calculate_token_cost(
+                            resolved_model, usage.input_tokens, usage.output_tokens
+                        )
+                        total_price = Decimal(costs.total_cost if costs else 0)
+                    except Exception:  # noqa: BLE001
+                        logger.debug("Error calculating cost for %r", resolved_model)
                 total_price = Decimal(0)
             token_usage = TokenUsage(
                 total=usage.total_tokens,
