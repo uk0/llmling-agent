@@ -14,7 +14,7 @@ from acp.schema import ToolCallLocation
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
-from llmling_agent_acp.syntax_detection import format_file_content
+from llmling_agent_acp.syntax_detection import format_zed_code_block
 from llmling_agent_tools.file_editor import replace_content
 
 
@@ -149,7 +149,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     tool_call_id=ctx.tool_call_id,
                     status="completed",
                     locations=[ToolCallLocation(path=resolved_path)],
-                    content=[format_file_content(content, resolved_path)],
+                    content=[format_zed_code_block(content, resolved_path)],
                 )
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send completed update: %s", e)
@@ -207,7 +207,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     tool_call_id=ctx.tool_call_id,
                     status="completed",
                     locations=[ToolCallLocation(path=resolved_path)],
-                    content=[format_file_content(content, resolved_path)],
+                    content=[format_zed_code_block(content, resolved_path)],
                 )
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to send completed update: %s", e)

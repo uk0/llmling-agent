@@ -210,3 +210,41 @@ def format_file_content(content: str, file_path: str | Path) -> str:
     """
     language = get_language_from_path(file_path)
     return format_code_block(content, language)
+
+
+def format_zed_code_block(
+    content: str,
+    file_path: str | Path,
+    start_line: int | None = None,
+    end_line: int | None = None,
+) -> str:
+    r"""Format content as a Zed-compatible code block with path and optional line numbers.
+
+    Args:
+        content: The code/text content
+        file_path: Path to the file (used in code block header)
+        start_line: Optional starting line number (1-based)
+        end_line: Optional ending line number (1-based)
+
+    Returns:
+        Formatted Zed-compatible code block
+
+    Examples:
+        >>> format_zed_code_block('def hello(): pass', 'src/main.py')
+        '```src/main.py\\ndef hello(): pass\\n```'
+        >>> format_zed_code_block('def hello(): pass', 'src/main.py', 10)
+        '```src/main.py#L10\\ndef hello(): pass\\n```'
+        >>> format_zed_code_block('def hello(): pass', 'src/main.py', 10, 15)
+        '```src/main.py#L10-15\\ndef hello(): pass\\n```'
+    """
+    path_str = str(file_path)
+
+    # Build line number suffix if provided
+    line_suffix = ""
+    if start_line is not None:
+        if end_line is not None and end_line != start_line:
+            line_suffix = f"#L{start_line}-{end_line}"
+        else:
+            line_suffix = f"#L{start_line}"
+
+    return f"```{path_str}{line_suffix}\n{content}\n```"
