@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
 
+import mcp
 from pydantic_ai import RunContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from types import TracebackType
 
-    import mcp
     from mcp import ClientSession
     from mcp.client.session import (
         ElicitationFnT,
@@ -26,7 +26,11 @@ if TYPE_CHECKING:
         SamplingFnT,
     )
     from mcp.shared.session import ProgressFnT, RequestResponder
-    from mcp.types import Tool, Tool as MCPTool
+    from mcp.types import (
+        Prompt as MCPPrompt,
+        Resource as MCPResource,
+        Tool as MCPTool,
+    )
 
     from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent_config.pool_server import TransportType
@@ -104,7 +108,7 @@ class MCPClient:
     ):
         self.exit_stack = AsyncExitStack()
         self.session: ClientSession | None = None
-        self._available_tools: list[Tool] = []
+        self._available_tools: list[MCPTool] = []
         self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
@@ -247,26 +251,49 @@ class MCPClient:
         logger.info("Connected to MCP server %s (%s)", info.name, info.version)
         logger.info("Available tools: %s", len(self._available_tools))
 
-    def get_tools(self) -> list[dict]:
+    def get_tools(self) -> list[dict[str, Any]]:
         """Get tools in OpenAI function format."""
         return [
             {"type": "function", "function": mcp_tool_to_fn_schema(tool)}
             for tool in self._available_tools
         ]
 
-    async def list_prompts(self) -> mcp.types.ListPromptsResult:
-        """Get available prompts from the server."""
+    async def list_prompts(self) -> list[MCPPrompt]:
+        """Get available prompts from the server, handling pagination internally."""
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
-        return await self.session.list_prompts()
 
-    async def list_resources(self) -> mcp.types.ListResourcesResult:
-        """Get available resources from the server."""
+        all_prompts = []
+        cursor = None
+        while True:
+            result = await self.session.list_prompts(cursor=cursor)
+            all_prompts.extend(result.prompts)
+
+            if result.nextCursor is None:
+                break
+            cursor = result.nextCursor
+        return all_prompts
+
+    async def list_resources(self) -> list[MCPResource]:
+        """Get available resources from the server, handling pagination internally."""
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
-        return await self.session.list_resources()
+
+        all_resources = []
+        cursor = None
+
+        while True:
+            result = await self.session.list_resources(cursor=cursor)
+            all_resources.extend(result.resources)
+
+            if result.nextCursor is None:
+                break
+            cursor = result.nextCursor
+
+        # Return the same structure but with all resources
+        return all_resources
 
     async def get_prompt(
         self, name: str, arguments: dict[str, str] | None = None

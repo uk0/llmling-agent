@@ -601,14 +601,22 @@ with other agents effectively."""
             return
 
         try:
-            # Collect all prompts from all MCP clients
+            # Collect all prompts from all MCP clients concurrently
+            clients = list(self.mcp_manager.clients.values())
+            if not clients:
+                return
+
+            # Use gather to fetch prompts concurrently, with exception handling
+            results = await asyncio.gather(
+                *[client.list_prompts() for client in clients], return_exceptions=True
+            )
+
             all_prompts: list[Prompt] = []
-            for client in self.mcp_manager.clients.values():
-                try:
-                    result = await client.list_prompts()
-                    all_prompts.extend(result.prompts)
-                except Exception as e:  # noqa: BLE001
-                    logger.warning("Failed to list prompts from MCP client: %s", e)
+            for result in results:
+                if isinstance(result, BaseException):
+                    logger.warning("Failed to list prompts from MCP client: %s", result)
+                else:
+                    all_prompts.extend(result)
 
             # Register prompts as commands
             if all_prompts:
