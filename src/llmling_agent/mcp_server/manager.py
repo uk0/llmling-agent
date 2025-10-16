@@ -88,12 +88,16 @@ class MCPManager(ResourceProvider):
 
     def add_server_config(self, server: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
-        server = (
-            StdioMCPServerConfig.from_string(server)
-            if isinstance(server, str)
-            else server
-        )
-        self.servers.append(server)
+        match server:
+            case str() if server.startswith("http") and server.endswith("/sse"):
+                resolved = SSEMCPServerConfig(url=server)
+            case str() if server.startswith("http"):
+                resolved = StreamableHTTPMCPServerConfig(url=server)
+            case str():
+                resolved = StdioMCPServerConfig.from_string(server)
+            case _:
+                resolved = server
+        self.servers.append(resolved)
 
     def __repr__(self) -> str:
         return f"MCPManager({self.servers!r})"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import Field
 from schemez import Schema
@@ -75,7 +75,7 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
     """Command arguments (e.g. ["run", "some-server", "--debug"])."""
 
     @classmethod
-    def from_string(cls, command: str) -> StdioMCPServerConfig:
+    def from_string(cls, command: str) -> Self:
         """Create a MCP server from a command string."""
         cmd, args = command.split(maxsplit=1)
         return cls(command=cmd, args=args.split())
