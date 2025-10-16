@@ -420,7 +420,6 @@ with other agents effectively."""
                     return
 
                 event_count += 1
-                msg = "Processing event %d (%s) for session %s"
                 logger.debug(msg, event_count, type(event).__name__, self.session_id)
 
                 match event:
@@ -439,8 +438,6 @@ with other agents effectively."""
                         delta=ThinkingPartDelta(content_delta=thinking_content)
                     ) if thinking_content:
                         # Handle thinking/reasoning deltas
-                        msg = "Processing ThinkingPartDelta %r for session %s"
-                        logger.info(msg, thinking_content, self.session_id)
                         thought_notification = create_thought_chunk(
                             thinking_content, self.session_id
                         )
@@ -449,8 +446,9 @@ with other agents effectively."""
 
                     case PartDeltaEvent(delta=ToolCallPartDelta()):
                         # Handle tool call delta updates
-                        msg = "Received ToolCallPartDelta for session %s"
-                        logger.info(msg, self.session_id)
+                        pass
+                        # msg = "Received ToolCallPartDelta for session %s"
+                        # logger.info(msg, self.session_id)
 
                     case FunctionToolCallEvent() | FunctionToolResultEvent():
                         # Handle tool events using process_pydantic_event function
