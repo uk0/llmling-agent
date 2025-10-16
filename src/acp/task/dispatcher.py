@@ -73,14 +73,12 @@ class DefaultMessageDispatcher(MessageDispatcher):
                 await self._task
             self._task = None
 
-    async def _dispatch_request(self, message: dict[str, Any]) -> None:
-        record = self._store.begin_incoming(
-            message.get("method", ""), message.get("params")
-        )
+    async def _dispatch_request(self, msg: dict[str, Any]) -> None:
+        record = self._store.begin_incoming(msg.get("method", ""), msg.get("params"))
 
         async def runner() -> None:
             try:
-                result = await self._request_runner(message)
+                result = await self._request_runner(msg)
             except Exception as exc:
                 self._store.fail_incoming(record, exc)
                 raise

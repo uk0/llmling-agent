@@ -59,16 +59,14 @@ class DebuggingMessageStateStore(InMemoryMessageStateStore):
 
         # Track start time for duration calculation
         self._request_start_times[request_id] = datetime.now()
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="outgoing",
-                event="register",
-                request_id=request_id,
-                method=method,
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="outgoing",
+            event="register",
+            request_id=request_id,
+            method=method,
         )
+        self._log_debug(entry)
 
         return future
 
@@ -76,38 +74,32 @@ class DebuggingMessageStateStore(InMemoryMessageStateStore):
         """Resolve outgoing request with debug logging."""
         duration = self._calculate_duration(request_id)
         super().resolve_outgoing(request_id, result)
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="outgoing",
-                event="resolve",
-                request_id=request_id,
-                method=self._get_method_for_request(request_id),
-                result=result,
-                duration_ms=duration,
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="outgoing",
+            event="resolve",
+            request_id=request_id,
+            method=self._get_method_for_request(request_id),
+            result=result,
+            duration_ms=duration,
         )
-
+        self._log_debug(entry)
         self._cleanup_request_timing(request_id)
 
     def reject_outgoing(self, request_id: int, error: Any) -> None:
         """Reject outgoing request with debug logging."""
         duration = self._calculate_duration(request_id)
         super().reject_outgoing(request_id, error)
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="outgoing",
-                event="reject",
-                request_id=request_id,
-                method=self._get_method_for_request(request_id),
-                error=str(error),
-                duration_ms=duration,
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="outgoing",
+            event="reject",
+            request_id=request_id,
+            method=self._get_method_for_request(request_id),
+            error=str(error),
+            duration_ms=duration,
         )
-
+        self._log_debug(entry)
         self._cleanup_request_timing(request_id)
 
     def reject_all_outgoing(self, error: Any) -> None:
@@ -115,17 +107,16 @@ class DebuggingMessageStateStore(InMemoryMessageStateStore):
         # Log for each pending request
         for request_id in list(self._outgoing.keys()):
             duration = self._calculate_duration(request_id)
-            self._log_debug(
-                DebugEntry(
-                    timestamp=datetime.now().isoformat(),
-                    direction="outgoing",
-                    event="reject",
-                    request_id=request_id,
-                    method=self._get_method_for_request(request_id),
-                    error=f"Connection error: {error}",
-                    duration_ms=duration,
-                )
+            entry = DebugEntry(
+                timestamp=datetime.now().isoformat(),
+                direction="outgoing",
+                event="reject",
+                request_id=request_id,
+                method=self._get_method_for_request(request_id),
+                error=f"Connection error: {error}",
+                duration_ms=duration,
             )
+            self._log_debug(entry)
 
         super().reject_all_outgoing(error)
         self._request_start_times.clear()
@@ -133,52 +124,45 @@ class DebuggingMessageStateStore(InMemoryMessageStateStore):
     def begin_incoming(self, method: str, params: Any) -> IncomingMessage:
         """Begin processing incoming request with debug logging."""
         record = super().begin_incoming(method, params)
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="incoming",
-                event="begin",
-                request_id=None,
-                method=method,
-                params=params,
-                status="pending",
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="incoming",
+            event="begin",
+            request_id=None,
+            method=method,
+            params=params,
+            status="pending",
         )
-
+        self._log_debug(entry)
         return record
 
     def complete_incoming(self, record: IncomingMessage, result: Any) -> None:
         """Complete incoming request with debug logging."""
         super().complete_incoming(record, result)
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="incoming",
-                event="complete",
-                request_id=None,
-                method=record.method,
-                result=result,
-                status="completed",
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="incoming",
+            event="complete",
+            request_id=None,
+            method=record.method,
+            result=result,
+            status="completed",
         )
+        self._log_debug(entry)
 
     def fail_incoming(self, record: IncomingMessage, error: Any) -> None:
         """Fail incoming request with debug logging."""
         super().fail_incoming(record, error)
-
-        self._log_debug(
-            DebugEntry(
-                timestamp=datetime.now().isoformat(),
-                direction="incoming",
-                event="fail",
-                request_id=None,
-                method=record.method,
-                error=str(error),
-                status="failed",
-            )
+        entry = DebugEntry(
+            timestamp=datetime.now().isoformat(),
+            direction="incoming",
+            event="fail",
+            request_id=None,
+            method=record.method,
+            error=str(error),
+            status="failed",
         )
+        self._log_debug(entry)
 
     def _log_debug(self, entry: DebugEntry) -> None:
         """Write debug entry to file if configured."""
@@ -188,7 +172,6 @@ class DebuggingMessageStateStore(InMemoryMessageStateStore):
         try:
             # Convert to dict and filter out None values for cleaner output
             data = {k: v for k, v in asdict(entry).items() if v is not None}
-
             # Write as JSONL (one JSON object per line)
             with self._debug_file.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(data, separators=(",", ":")) + "\n")
