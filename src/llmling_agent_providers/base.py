@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
-    import tokonomics
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelProtocol, ModelType
@@ -162,19 +161,6 @@ class AgentProvider[TDeps]:
                 return bool(caps and caps.supports_vision)
             case _:
                 return False
-
-    async def get_token_limits(self) -> tokonomics.TokenLimits | None:
-        """Get token limits for the current model."""
-        import tokonomics
-
-        if not self.model_name:
-            return None
-
-        try:
-            return await tokonomics.get_model_limits(self.model_name)
-        except ValueError:
-            logger.debug("Could not get token limits for model: %s", self.model_name)
-            return None
 
 
 class AgentLLMProvider[TDeps](AgentProvider[TDeps]):
