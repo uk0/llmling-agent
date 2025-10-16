@@ -6,19 +6,33 @@ This script provides easy commands for managing database migrations using Alembi
 
 from __future__ import annotations
 
-import argparse
 import os
 from pathlib import Path
 import subprocess
-import sys
+from typing import Annotated
+
+from rich.console import Console
+from rich.prompt import Confirm
+import typer
+
+
+app = typer.Typer(
+    name="llmling-agent-db",
+    help="Database migration management for llmling-agent",
+    rich_markup_mode="rich",
+)
+console = Console()
 
 
 def run_command(cmd: list[str], cwd: Path | None = None) -> int:
     """Run a command and return the exit code."""
-    print(f"Running: {' '.join(cmd)}")
+    console.print(f"[bold blue]Running:[/bold blue] {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd, check=False)
     if result.returncode != 0 and cmd[0] == "alembic":
-        print(f"Error: Command '{cmd[0]}' not found. Make sure alembic is installed.")
+        console.print(
+            f"[bold red]Error:[/bold red] Command '{cmd[0]}' not found. "
+            "Make sure alembic is installed."
+        )
     return result.returncode
 
 
@@ -29,111 +43,106 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent.parent
 
 
-def main():  # noqa: PLR0911
-    """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Database migration management for llmling-agent"
-    )
+@app.command()
+def status() -> int:
+    """Show current migration status."""
+    project_root = get_project_root()
+    return run_command(["alembic", "current", "-v"], cwd=project_root)
 
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Status command
-    subparsers.add_parser("status", help="Show current migration status")
+@app.command()
+def upgrade(
+    revision: Annotated[str, typer.Argument(help="Target revision")] = "head",
+) -> int:
+    """Upgrade database to latest migration."""
+    project_root = get_project_root()
+    return run_command(["alembic", "upgrade", revision], cwd=project_root)
 
-    # Upgrade command
-    upgrade_parser = subparsers.add_parser(
-        "upgrade", help="Upgrade database to latest migration"
-    )
-    upgrade_parser.add_argument(
-        "revision", nargs="?", default="head", help="Target revision (default: head)"
-    )
 
-    # Downgrade command
-    downgrade_parser = subparsers.add_parser("downgrade", help="Downgrade database")
-    downgrade_parser.add_argument(
-        "revision",
-        help="Target revision (e.g., -1 for previous, or specific revision ID)",
-    )
+@app.command()
+def downgrade(
+    revision: Annotated[
+        str,
+        typer.Argument(
+            help="Target revision (e.g., -1 for previous, or specific revision ID)"
+        ),
+    ],
+) -> int:
+    """Downgrade database."""
+    project_root = get_project_root()
+    return run_command(["alembic", "downgrade", revision], cwd=project_root)
 
-    # Create migration command
-    create_parser = subparsers.add_parser("create", help="Create a new migration")
-    create_parser.add_argument("message", help="Migration message")
-    create_parser.add_argument(
-        "--autogenerate",
-        action="store_true",
-        help="Auto-generate migration based on model changes",
-    )
 
-    # History command
-    subparsers.add_parser("history", help="Show migration history")
+@app.command()
+def create(
+    message: Annotated[str, typer.Argument(help="Migration message")],
+    autogenerate: Annotated[
+        bool,
+        typer.Option(
+            "--autogenerate",
+            help="Auto-generate migration based on model changes",
+        ),
+    ] = False,
+) -> int:
+    """Create a new migration."""
+    project_root = get_project_root()
+    cmd = ["alembic", "revision", "-m", message]
+    if autogenerate:
+        cmd.append("--autogenerate")
+    return run_command(cmd, cwd=project_root)
 
-    # Current command
-    subparsers.add_parser("current", help="Show current revision")
 
-    # Reset command
-    reset_parser = subparsers.add_parser(
-        "reset", help="Reset database (WARNING: destructive)"
-    )
-    reset_parser.add_argument(
-        "--force", action="store_true", help="Force reset without confirmation"
-    )
+@app.command()
+def history() -> int:
+    """Show migration history."""
+    project_root = get_project_root()
+    return run_command(["alembic", "history", "-v"], cwd=project_root)
 
-    args = parser.parse_args()
 
-    if not args.command:
-        parser.print_help()
-        return 1
+@app.command()
+def current() -> int:
+    """Show current revision."""
+    project_root = get_project_root()
+    return run_command(["alembic", "current"], cwd=project_root)
+
+
+@app.command()
+def reset(
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Force reset without confirmation"),
+    ] = False,
+) -> int:
+    """Reset database (WARNING: destructive)."""
+    if not force and not Confirm.ask(
+        "[bold red]This will delete all data in the database. Continue?[/bold red]",
+        default=False,
+    ):
+        console.print("[yellow]Aborted.[/yellow]")
+        return 0
 
     project_root = get_project_root()
+    console.print("[bold yellow]Resetting database...[/bold yellow]")
 
+    # First, drop to base (empty database)
+    result = run_command(["alembic", "downgrade", "base"], cwd=project_root)
+    if result != 0:
+        return result
+
+    # Then upgrade to head
+    return run_command(["alembic", "upgrade", "head"], cwd=project_root)
+
+
+def main():
+    """Main entry point."""
     # Set up environment
+    project_root = get_project_root()
     env = os.environ.copy()
     env["PYTHONPATH"] = str(project_root / "src")
+    os.environ.update(env)
 
-    # Handle commands
-    if args.command == "status":
-        return run_command(["alembic", "current", "-v"], cwd=project_root)
-
-    if args.command == "upgrade":
-        return run_command(["alembic", "upgrade", args.revision], cwd=project_root)
-
-    if args.command == "downgrade":
-        return run_command(["alembic", "downgrade", args.revision], cwd=project_root)
-
-    if args.command == "history":
-        return run_command(["alembic", "history", "-v"], cwd=project_root)
-
-    if args.command == "current":
-        return run_command(["alembic", "current"], cwd=project_root)
-
-    if args.command == "create":
-        cmd = ["alembic", "revision", "-m", args.message]
-        if args.autogenerate:
-            cmd.append("--autogenerate")
-        return run_command(cmd, cwd=project_root)
-
-    if args.command == "reset":
-        if not args.force:
-            response = input(
-                "This will delete all data in the database. Continue? (y/N): "
-            )
-            if response.lower() != "y":
-                print("Aborted.")
-                return 0
-
-        # Drop all tables and recreate
-        print("Resetting database...")
-
-        # First, drop to base (empty database)
-        result = run_command(["alembic", "downgrade", "base"], cwd=project_root)
-        if result != 0:
-            return result
-
-        # Then upgrade to head
-        return run_command(["alembic", "upgrade", "head"], cwd=project_root)
-
-    return 0
+    app()
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
