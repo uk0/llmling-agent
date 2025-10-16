@@ -8,16 +8,15 @@ from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
 
-import mcp
 from pydantic_ai import RunContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
     from types import TracebackType
 
+    import mcp
     from mcp import ClientSession
     from mcp.client.session import (
         ElicitationFnT,
@@ -33,6 +32,7 @@ if TYPE_CHECKING:
     )
 
     from llmling_agent.mcp_server.progress import ProgressHandler
+    from llmling_agent.tools.base import Tool
     from llmling_agent_config.pool_server import TransportType
 
 logger = get_logger(__name__)
@@ -304,7 +304,7 @@ class MCPClient:
             raise RuntimeError(msg)
         return await self.session.get_prompt(name, arguments)
 
-    def create_tool_callable(self, tool: MCPTool) -> Tool:
+    def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
         from schemez.functionschema import FunctionSchema
 

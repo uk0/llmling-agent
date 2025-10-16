@@ -256,25 +256,20 @@ class MCPManager(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get all tools from all connected servers."""
+        all_tools: list[Tool] = []
 
-        async def get_client_tools(client: MCPClient) -> list[Tool]:
-            client_tools: list[Tool] = []
+        for client in self.clients.values():
             for tool in client._available_tools:
                 try:
-                    tool_info = client.create_tool_callable(tool)
-                    client_tools.append(tool_info)
+                    tool_info = client.convert_tool(tool)
+                    all_tools.append(tool_info)
                     logger.debug("Registered MCP tool: %s", tool.name)
                 except Exception:
                     msg = "Failed to create tool from MCP tool: %s"
                     logger.exception(msg, tool.name)
                     continue
-            return client_tools
 
-        results = await asyncio.gather(
-            *[get_client_tools(client) for client in self.clients.values()],
-            return_exceptions=False,
-        )
-        return [tool for client_tools in results for tool in client_tools]
+        return all_tools
 
     async def list_prompts(self) -> list[StaticPrompt]:
         """Get all available prompts from MCP servers."""
