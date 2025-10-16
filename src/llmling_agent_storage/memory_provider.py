@@ -119,6 +119,10 @@ class MemoryStorageProvider(StorageProvider):
         forwarded_from: list[str] | None = None,
     ):
         """Store message in memory."""
+        if next((i for i in self.messages if i["message_id"] == message_id), None):
+            msg = f"Duplicate message ID: {message_id}"
+            raise ValueError(msg)
+
         self.messages.append({
             "conversation_id": conversation_id,
             "message_id": message_id,
@@ -140,6 +144,11 @@ class MemoryStorageProvider(StorageProvider):
         start_time: datetime | None = None,
     ):
         """Store conversation in memory."""
+        if next(
+            (i for i in self.messages if i["conversation_id"] == conversation_id), None
+        ):
+            msg = f"Duplicate conversation ID: {conversation_id}"
+            raise ValueError(msg)
         self.conversations.append({
             "id": conversation_id,
             "agent_name": node_name,
@@ -154,6 +163,9 @@ class MemoryStorageProvider(StorageProvider):
         tool_call: ToolCallInfo,
     ):
         """Store tool call in memory."""
+        if next((i for i in self.messages if i["message_id"] == message_id), None):
+            msg = f"Duplicate message ID: {message_id}"
+            raise ValueError(msg)
         self.tool_calls.append({
             "conversation_id": conversation_id,
             "message_id": message_id,
