@@ -248,9 +248,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 agent_content = []
 
                 # Use wrapper to normalize all streaming nodes to (agent, event) tuples
-                def _raise_streaming_error():
+                def _raise_streaming_error(agent=agent):
                     msg = f"Agent {agent.name} does not support streaming"
-                    raise ValueError(msg)
+                    raise ValueError(msg)  # noqa: TRY301
 
                 if hasattr(agent, "run_stream"):
                     stream = normalize_stream_for_teams(agent, *current_message, **kwargs)
@@ -299,7 +299,7 @@ if __name__ == "__main__":
         try:
             async for node, event in outer_run.run_stream("test"):
                 print(f"{node.name}: {type(event).__name__}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error: {e}")
 
     asyncio.run(main())
