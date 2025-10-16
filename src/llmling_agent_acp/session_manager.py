@@ -108,6 +108,10 @@ class ACPSessionManager:
 
             # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
+
+            # Initialize project context from AGENTS.md
+            await session.initialize_project_context()
+
             self._sessions[session_id] = session
             return session_id  # Commands will be sent after session response is returned
 

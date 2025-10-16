@@ -23,6 +23,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
+from acp import ReadTextFileRequest
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import AgentMessageChunk, SessionNotification, TextContentBlock
@@ -192,6 +193,46 @@ class ACPSession:
             logger.exception(msg, self.session_id)
             # Don't fail session creation, just log the error
             self.mcp_manager = None
+
+    async def initialize_project_context(self) -> None:
+        """Load AGENTS.md file and inject project context into all agents.
+
+        TODO: Consider moving this to __aenter__
+        """
+        try:
+            # Use ACP readFile request to fetch AGENTS.md
+            path = f"{self.cwd}/AGENTS.md"
+            request = ReadTextFileRequest(path=path, session_id=self.session_id)
+            agents_md_response = await self.client.read_text_file(request)
+            # Check if file is non-empty
+            content = agents_md_response.content.strip()
+            if not content:
+                msg = "AGENTS.md exists but is empty for session %s"
+                logger.debug(msg, self.session_id)
+                return
+
+            project_prompt = f"""## Project Information
+
+{content}
+
+This describes the current project, available agents, and their capabilities.
+Use this context to understand the project structure and coordinate
+with other agents effectively."""
+
+            # Inject into all agents in the pool
+            agent_count = 0
+            for agent_name, agent in self.agent_pool.agents.items():
+                agent.sys_prompts.prompts.append(project_prompt)
+                agent_count += 1
+                logger.debug("Injected AGENTS.md context into agent: %s", agent_name)
+
+            msg = "Injected AGENTS.md project context into %d agents for session %s"
+            logger.info(msg, agent_count, self.session_id)
+
+        except Exception as e:  # noqa: BLE001
+            # File doesn't exist or can't be read - that's fine, just log it
+            msg = "No AGENTS.md file found or couldn't read it for session %s: %s"
+            logger.debug(msg, self.session_id, e)
 
     @property
     def agent(self) -> Agent[Any]:
