@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import dataclass, field
 from itertools import pairwise
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import uuid4
 
 from llmling_agent.delegation.base_team import BaseTeam
@@ -59,6 +59,48 @@ class ExtendedTeamTalk(TeamTalk):
 
 class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     """Handles team operations with monitoring."""
+
+    @overload  # validator set: it defines the output
+    def __init__(
+        self,
+        agents: Sequence[MessageNode[TDeps, Any]],
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        shared_prompt: str | None = None,
+        validator: MessageNode[Any, TResult],
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
+    ): ...
+
+    @overload
+    def __init__(  # no validator, but all nodes same output type.
+        self,
+        agents: Sequence[MessageNode[TDeps, TResult]],
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        shared_prompt: str | None = None,
+        validator: None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        agents: Sequence[MessageNode[TDeps, Any]],
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        shared_prompt: str | None = None,
+        validator: MessageNode[Any, TResult] | None = None,
+        picker: AnyAgent[Any, Any] | None = None,
+        num_picks: int | None = None,
+        pick_prompt: str | None = None,
+    ): ...
 
     def __init__(
         self,
