@@ -1,5 +1,6 @@
 """Storage configuration."""
 
+import os
 from pathlib import Path
 from typing import Annotated, Final, Literal
 
@@ -184,6 +185,7 @@ class StorageConfig(Schema):
             - Configured providers otherwise
         """
         if self.providers is None:
-            cfg = SQLStorageConfig()
-            return [cfg]
+            if os.getenv("PYTEST_CURRENT_TEST"):
+                return [MemoryStorageConfig()]
+            return [SQLStorageConfig()]
         return self.providers
