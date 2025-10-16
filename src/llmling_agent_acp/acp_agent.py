@@ -73,6 +73,7 @@ class LLMlingACPAgent(ACPAgent):
         file_access: bool = True,
         terminal_access: bool = True,
         usage_limits: UsageLimits | None = None,
+        debug_commands: bool = False,
     ) -> None:
         """Initialize ACP agent implementation.
 
@@ -84,6 +85,7 @@ class LLMlingACPAgent(ACPAgent):
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
             usage_limits: Optional usage limits for model requests and tokens
+            debug_commands: Whether to enable debug slash commands for testing
         """
         self.connection = connection
         self.agent_pool = agent_pool
@@ -93,10 +95,18 @@ class LLMlingACPAgent(ACPAgent):
         self.terminal_access = terminal_access
         self.client: Client = connection
         self.usage_limits = usage_limits
+        self.debug_commands = debug_commands
         self.client_capabilities: ClientCapabilities | None = None
         command_store = CommandStore(enable_system_commands=True)
         command_store._initialize_sync()
-        for command in [*get_commands(), *get_acp_commands()]:
+
+        commands_to_register = [*get_commands(), *get_acp_commands()]
+        if debug_commands:
+            from llmling_agent_acp.debug_commands import get_debug_commands
+
+            commands_to_register.extend(get_debug_commands())
+
+        for command in commands_to_register:
             command_store.register_command(command)
         self.command_bridge = ACPCommandBridge(command_store)
         self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
@@ -105,6 +115,8 @@ class LLMlingACPAgent(ACPAgent):
         self._initialized = False
         agent_count = len(self.agent_pool.agents)
         logger.info("Created ACP agent implementation with %d agents", agent_count)
+        if debug_commands:
+            logger.info("Debug slash commands enabled for ACP testing")
 
         # Note: Tool registration happens after initialize() when we know client caps
 

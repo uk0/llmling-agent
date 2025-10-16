@@ -67,6 +67,9 @@ class ACPServer:
     debug_file: str | None = None
     """File path for debug message logging"""
 
+    debug_commands: bool = False
+    """Whether to enable debug slash commands for testing"""
+
     def __post_init__(self) -> None:
         """Initialize server configuration."""
         # Set default providers if None
@@ -89,6 +92,7 @@ class ACPServer:
         providers: list[ProviderType] | None = None,
         debug_messages: bool = False,
         debug_file: str | None = None,
+        debug_commands: bool = False,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -101,6 +105,7 @@ class ACPServer:
             providers: List of provider types to use for model discovery
             debug_messages: Enable saving JSON messages to file
             debug_file: Path to debug file
+            debug_commands: Enable debug slash commands for testing
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -115,6 +120,7 @@ class ACPServer:
             providers=providers,
             debug_messages=debug_messages,
             debug_file=debug_file,
+            debug_commands=debug_commands,
         )
         agent_names = list(server.agent_pool.agents.keys())
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
@@ -145,6 +151,7 @@ class ACPServer:
                 file_access=self.file_access,
                 terminal_access=self.terminal_access,
                 usage_limits=self.usage_limits,
+                debug_commands=self.debug_commands,
             )
 
             reader, writer = await stdio_streams()

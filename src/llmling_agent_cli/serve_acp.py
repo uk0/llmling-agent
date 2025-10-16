@@ -54,6 +54,11 @@ def acp_command(
         "--model-provider",
         help="Providers to search for models (can be specified multiple times)",
     ),
+    debug_commands: bool = t.Option(
+        False,
+        "--debug-commands",
+        help="Enable debug slash commands for testing ACP notifications",
+    ),
 ):
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -68,6 +73,7 @@ def acp_command(
     - File system operations with permission handling
     - Terminal integration (optional)
     - Content blocks (text, image, audio, resources)
+    - Debug slash commands for testing ACP notifications (optional)
 
     Agent Mode Switching:
     If your config defines multiple agents, the IDE will show a mode selector
@@ -86,6 +92,9 @@ def acp_command(
 
         # Run with full capabilities
         llmling-agent acp config.yml --file-access --terminal-access
+
+        # Run with debug commands for testing
+        llmling-agent acp config.yml --debug-commands
 
         # Test with ACP client (example)
         echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}' | python -m llmling_agent_cli acp config.yml
@@ -122,6 +131,7 @@ def acp_command(
                 providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
                 debug_messages=debug_messages,
                 debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+                debug_commands=debug_commands,
             )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
@@ -138,6 +148,8 @@ def acp_command(
         if debug_messages:
             debug_path = debug_file or "acp-debug.jsonl"
             logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
+        if debug_commands:
+            logger.info("Debug slash commands enabled")
         msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
         logger.info(msg, file_access, terminal_access, session_support)
 
@@ -157,6 +169,66 @@ def acp_command(
         logger.info("Interrupted")
     except Exception as e:
         logger.exception("Failed to run ACP server")
+        raise t.Exit(1) from e
+
+
+def acp_debug_command(
+    sequence_file: str | None = t.Option(
+        None, "--sequence", help="Path to JSON file containing notification sequence"
+    ),
+    create_sample: str | None = t.Option(
+        None, "--create-sample", help="Create sample sequence file at specified path"
+    ),
+    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
+):
+    """Run ACP debug server for testing client behavior.
+
+    This is a minimal ACP server that can send predefined notification sequences
+    to test how clients handle various ACP messages without needing a full agent setup.
+
+    Examples:
+        # Run debug server with default sequence
+        llmling-agent acp-debug
+
+        # Create a sample sequence file
+        llmling-agent acp-debug --create-sample debug_sequence.json
+
+        # Run with custom sequence
+        llmling-agent acp-debug --sequence debug_sequence.json
+
+        # Test with ACP client
+        echo '{"jsonrpc":"2.0","method":"initialize",
+        "params":{"protocolVersion":1},"id":1}' | llmling-agent acp-debug
+    """
+    import json
+    from pathlib import Path
+
+    from llmling_agent_acp.debug_server import DebugServer, create_sample_sequence
+
+    level = getattr(logging, log_level.upper())
+    logging.basicConfig(level=level)
+
+    if create_sample:
+        sample_path = Path(create_sample)
+        sample_sequence = create_sample_sequence()
+
+        with sample_path.open("w") as f:
+            json.dump(sample_sequence, f, indent=2)
+
+        print(f"Created sample sequence file: {sample_path}")
+        return
+
+    async def run_debug_server():
+        logger.info("Starting ACP debug server")
+        server = DebugServer(sequence_file=sequence_file)
+        await server.run()
+
+    try:
+        asyncio.run(run_debug_server())
+    except KeyboardInterrupt:
+        logger.info("Debug server interrupted")
+    except Exception as e:
+        logger.exception("Failed to run debug server")
         raise t.Exit(1) from e
 
 
