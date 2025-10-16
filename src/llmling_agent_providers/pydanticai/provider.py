@@ -461,7 +461,7 @@ if __name__ == "__main__":
     from llmling_agent.tools import Tool
 
     async def main():
-        provider = PydanticAIProvider[Any](model="openai:gpt-5-nano")
+        provider = PydanticAIProvider(model="openai:gpt-5-nano")
 
         def write_poem(text: str) -> bool:
             """The ultimate poem writing tool."""
