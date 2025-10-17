@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.utils.now import get_now
 from llmling_agent_config.conditions import Condition
 
 
@@ -135,6 +134,8 @@ class FileConnectionConfig(ConnectionConfig):
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
         from upath import UPath
+
+        from llmling_agent.utils.now import get_now
 
         now = get_now()
         date = now.strftime("%Y-%m-%d")
