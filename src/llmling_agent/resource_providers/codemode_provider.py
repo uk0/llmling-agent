@@ -61,28 +61,22 @@ class CodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
-        # Build execution namespace
         namespace = await self._build_execution_namespace()
         if context_vars:
             namespace.update(context_vars)
 
-        # Parse the code to check for return statements or _result assignment
-        try:
+        try:  # Parse the code to check for return statements or _result assignment
             tree = ast.parse(python_code)
             has_return = any(isinstance(node, ast.Return) for node in ast.walk(tree))
             any(
-                isinstance(node, ast.Assign)
-                and any(
-                    isinstance(target, ast.Name) and target.id == "_result"
-                    for target in node.targets
-                )
-                for node in ast.walk(tree)
+                isinstance(n, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "_result" for t in n.targets)
+                for n in ast.walk(tree)
             )
         except SyntaxError:
             has_return = False
 
-        # Execute the code
-        if has_return:
+        if has_return:  # Execute the code
             # Code has explicit returns, execute as function
             func_code = f"""
 async def _exec_func():
@@ -319,3 +313,23 @@ async def _exec_func():
             return type_map.get(return_schema.get("type", "string"), "Any")
         except Exception:  # noqa: BLE001
             return "Any"
+
+
+if __name__ == "__main__":
+    import asyncio
+    import webbrowser
+
+    from llmling_agent import Agent
+    from llmling_agent.resource_providers.static import StaticResourceProvider
+
+    static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
+
+    async def main():
+        #     provider = CodeModeResourceProvider([static_provider])
+        #     tools = await provider.get_tools()
+        async with Agent(model="openai:gpt-5-nano") as agent:
+            agent.tools.add_provider(static_provider)
+            result = await agent.run("Open webbrowser with URL https://www.google.com")
+            print(result)
+
+    asyncio.run(main())
