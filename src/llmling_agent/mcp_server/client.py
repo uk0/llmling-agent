@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
+from fastmcp.client.messages import MessageHandler
 from mcp.types import TextContent
 
 from llmling_agent.log import get_logger
@@ -14,11 +16,12 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from types import TracebackType
+    from typing import Any
 
     import fastmcp
     from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
     from fastmcp.client.logging import LogMessage
-    from fastmcp.client.messages import MessageHandler, MessageHandlerT
+    from fastmcp.client.messages import MessageHandlerT
     from fastmcp.client.sampling import ClientSamplingHandler
     import mcp
     from mcp.client.session import RequestContext
@@ -74,11 +77,18 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
+        # Store message handler or mark for lazy creation
         self._message_handler = message_handler
+        self._use_default_message_handler = message_handler is None
         self._accessible_roots = accessible_roots or []
         self._client: fastmcp.Client | None = None
         self._available_tools: list[MCPTool] = []
         self._connected = False
+
+        # Track current tool execution context for progress notifications
+        self._current_tool_name: str | None = None
+        self._current_tool_call_id: str | None = None
+        self._current_tool_input: dict | None = None
 
     async def __aenter__(self) -> Self:
         """Enter context manager."""
@@ -196,6 +206,16 @@ class MCPClient:
             client_kwargs["elicitation_handler"] = self._elicitation_handler_impl
         if self._sampling_callback:
             client_kwargs["sampling_handler"] = self._sampling_handler_impl
+        # Create message handler if needed
+        if self._use_default_message_handler:
+            message_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(
+                self
+            )
+        else:
+            message_handler = self._message_handler
+
+        if message_handler:
+            client_kwargs["message_handler"] = message_handler
 
         # Remove None values
         client_kwargs = {k: v for k, v in client_kwargs.items() if v is not None}
@@ -340,6 +360,11 @@ class MCPClient:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
+        # Store context for progress tracking
+        self._current_tool_name = name
+        self._current_tool_call_id = tool_call_id
+        self._current_tool_input = arguments or {}
+
         try:
             # Use FastMCP's call_tool method
             result = await self._client.call_tool(name, arguments or {})
@@ -358,3 +383,94 @@ class MCPClient:
             raise RuntimeError(msg) from e
         else:
             return "Tool executed successfully"
+        finally:
+            # Clear context after tool execution
+            self._current_tool_name = None
+            self._current_tool_call_id = None
+            self._current_tool_input = None
+
+
+class MCPMessageHandler(MessageHandler):
+    """Custom message handler that bridges FastMCP to llmling-agent notifications."""
+
+    def __init__(self, client: MCPClient) -> None:
+        super().__init__()
+        self.client = client
+
+    async def on_message(self, message: Any) -> None:
+        """Handle generic messages."""
+
+    async def on_request(self, message: Any) -> None:
+        """Handle requests."""
+
+    async def on_notification(self, message: Any) -> None:
+        """Handle server notifications."""
+
+    async def on_tool_list_changed(
+        self, message: mcp.types.ToolListChangedNotification
+    ) -> None:
+        """Handle tool list changes by refreshing tools."""
+        logger.info("MCP tool list changed: %s", message)
+        # Schedule async refresh - use create_task to avoid blocking
+        task = asyncio.create_task(self.client._refresh_tools())
+        # Store reference to avoid warning about unawaited task
+        task.add_done_callback(
+            lambda t: t.exception() if t.done() and t.exception() else None
+        )
+
+    async def on_resource_list_changed(
+        self, message: mcp.types.ResourceListChangedNotification
+    ) -> None:
+        """Handle resource list changes."""
+        logger.info("MCP resource list changed: %s", message)
+
+    async def on_resource_updated(self, message: Any) -> None:
+        """Handle resource updates."""
+        logger.info("MCP resource updated: %s", getattr(message, "uri", "unknown"))
+
+    async def on_progress(self, message: Any) -> None:
+        """Handle progress notifications with proper context."""
+        if self.client._progress_handler:
+            # Use stored tool execution context - handle both coroutines and awaitables
+            try:
+                awaitable = self.client._progress_handler(
+                    self.client._current_tool_name or "",
+                    self.client._current_tool_call_id or "",
+                    self.client._current_tool_input or {},
+                    getattr(message, "progress", 0.0),
+                    getattr(message, "total", None),
+                    getattr(message, "message", None),
+                )
+                # Use ensure_future to handle both coroutines and awaitables
+                task = asyncio.ensure_future(awaitable)
+                # Store reference to avoid warning about unawaited task
+                task.add_done_callback(
+                    lambda t: t.exception() if t.done() and t.exception() else None
+                )
+            except Exception:
+                logger.exception("Failed to handle progress notification")
+
+    async def on_prompt_list_changed(self, message: Any) -> None:
+        """Handle prompt list changes."""
+        logger.info("MCP prompt list changed: %s", message)
+
+    async def on_cancelled(self, message: Any) -> None:
+        """Handle cancelled operations."""
+        logger.info("MCP operation cancelled: %s", message)
+
+    async def on_logging_message(self, message: Any) -> None:
+        """Handle server log messages."""
+        # This is handled by _log_handler, but keep for completeness
+
+    async def on_exception(self, message: Exception) -> None:
+        """Handle exceptions."""
+        logger.error("MCP client exception: %s", message)
+
+    async def on_ping(self, message: Any) -> None:
+        """Handle ping requests."""
+
+    async def on_list_roots(self, message: Any) -> None:
+        """Handle list roots requests."""
+
+    async def on_create_message(self, message: Any) -> None:
+        """Handle create message requests."""
