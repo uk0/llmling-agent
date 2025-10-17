@@ -504,13 +504,8 @@ All message nodes support the same execution patterns:
 result = await node.run("prompt")
 
 # Streaming
-async with node.run_stream("prompt") as stream:
-    async for chunk in stream:
-        print(chunk)
-
-# Iterator
-async for message in node.run_iter("prompt"):
-    print(message)
+async for event in node.run_stream("prompt"):
+    print(event)
 
 # Background execution
 stats = await node.run_in_background("prompt", max_count=5)
