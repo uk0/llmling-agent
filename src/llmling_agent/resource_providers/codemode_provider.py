@@ -21,19 +21,10 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     params = schema.get("parameters", {}).get("properties", {})
     required = set(schema.get("required", []))
 
-    type_map = {
-        "string": "str",
-        "integer": "int",
-        "number": "float",
-        "boolean": "bool",
-        "array": "list",
-        "object": "dict",
-    }
-
     param_strs = []
     for name, param_info in params.items():
-        param_type = param_info.get("type", "Any")
-        type_hint = type_map.get(param_type, "Any")
+        # Use improved type inference
+        type_hint = await _infer_parameter_type(tool, name, param_info)
 
         if name not in required:
             param_strs.append(f"{name}: {type_hint} = None")
@@ -41,6 +32,65 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
             param_strs.append(f"{name}: {type_hint}")
 
     return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
+
+
+async def _infer_parameter_type(tool: Tool, param_name: str, param_info: dict) -> str:
+    """Infer parameter type from schema and function inspection."""
+    schema_type = param_info.get("type", "Any")
+
+    # If schema has a specific type, use it
+    if schema_type != "object":
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list",
+            "null": "None",
+        }
+        return type_map.get(schema_type, "Any")
+
+    # For 'object' type, try to infer from function signature
+    try:
+        import inspect
+
+        callable_func = tool.callable.callable
+        sig = inspect.signature(callable_func)
+
+        if param_name in sig.parameters:
+            param = sig.parameters[param_name]
+
+            # Try annotation first
+            if param.annotation != inspect.Parameter.empty:
+                if hasattr(param.annotation, "__name__"):
+                    return param.annotation.__name__
+                return str(param.annotation)
+
+            # Infer from default value
+            if param.default != inspect.Parameter.empty:
+                default_type = type(param.default).__name__
+                # Map common types
+                if default_type == "int":
+                    return "int"
+                if default_type == "bool":
+                    return "bool"
+                if default_type == "float":
+                    return "float"
+                if default_type == "str":
+                    return "str"
+
+            # If no default and it's required, assume str for web-like functions
+            required = set(
+                tool.schema.get("function", {}).get("parameters", {}).get("required", [])
+            )
+            if param_name in required:
+                return "str"
+
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Fallback to Any for unresolved object types
+    return "Any"
 
 
 async def _get_return_model_name(tool: Tool) -> str:
@@ -285,10 +335,10 @@ if __name__ == "__main__":
 
     async def main():
         provider = CodeModeResourceProvider([static_provider])
-        async with Agent(model="openai:gpt-5-nano") as agent:
+        async with Agent(model="openai:gpt-4o-mini") as agent:
             agent.tools.add_provider(provider)
             result = await agent.run(
-                "open a web browser with URL https://www.google.com."
+                "Use the available open() function to open a web browser with URL https://www.google.com. Write code that uses the async open function provided in the tools."
             )
             print(result)
 
