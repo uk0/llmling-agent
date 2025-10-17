@@ -278,7 +278,7 @@ class MCPManager(ResourceProvider):
     async def list_prompts(self) -> list[StaticPrompt]:
         """Get all available prompts from MCP servers."""
 
-        async def get_client_prompts(client) -> list[StaticPrompt]:
+        async def get_client_prompts(client: MCPClient) -> list[StaticPrompt]:
             try:
                 result = await client.list_prompts()
                 client_prompts: list[StaticPrompt] = []
@@ -302,7 +302,7 @@ class MCPManager(ResourceProvider):
     async def list_resources(self) -> list[ResourceInfo]:
         """Get all available resources from MCP servers."""
 
-        async def get_client_resources(client) -> list[ResourceInfo]:
+        async def get_client_resources(client: MCPClient) -> list[ResourceInfo]:
             try:
                 result = await client.list_resources()
                 client_resources: list[ResourceInfo] = []
