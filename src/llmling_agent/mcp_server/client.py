@@ -38,6 +38,17 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+LEVEL_MAP = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "notice": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+    "critical": logging.CRITICAL,
+    "alert": logging.CRITICAL,
+    "emergency": logging.CRITICAL,
+}
+
 
 def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     """Convert MCP tool to OpenAI function schema."""
@@ -68,18 +79,8 @@ async def message_handler(
             logger.debug("MCP progress: %s", params)
         case mcp.LoggingMessageNotification(params=params):
             # Map MCP log levels to Python logging integer levels
-            level_map = {
-                "debug": logging.DEBUG,
-                "info": logging.INFO,
-                "notice": logging.INFO,
-                "warning": logging.WARNING,
-                "error": logging.ERROR,
-                "critical": logging.CRITICAL,
-                "alert": logging.CRITICAL,
-                "emergency": logging.CRITICAL,
-            }
 
-            log_level = level_map[params.level]
+            log_level = LEVEL_MAP[params.level]
             logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
             mcp_logger = get_logger(logger_name)
             log_msg = str(params.data) if params.data else "MCP server log message"
@@ -114,7 +115,7 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
-        self._message_handler = message_handler
+        self._message_handler = message_handler or self._default_message_handler
         self._accessible_roots = accessible_roots or []
         self._enter_lock = Lock()
 
@@ -149,6 +150,72 @@ class MCPClient:
             logger.warning("Ignoring known MCP cleanup issue: Task context mismatch")
         elif cm and cm.error:
             raise cm.error
+
+    async def _default_message_handler(
+        self,
+        message: RequestResponder[mcp.ServerRequest, mcp.ClientResult]
+        | mcp.ServerNotification
+        | Exception,
+    ):
+        """Default MCP message handler that updates tools on changes."""
+        import mcp
+        from mcp.shared.session import RequestResponder
+        from mcp.types import ClientResult, EmptyResult
+
+        if isinstance(message, Exception):
+            raise message
+        if isinstance(message, RequestResponder):
+            with message as resp:
+                await resp.respond(ClientResult(root=EmptyResult()))
+                return
+        match message.root:
+            case mcp.types.CancelledNotification(params=params):
+                logger.info("MCP operation cancelled: %s", params)
+            case mcp.ProgressNotification(params=params):
+                logger.debug("MCP progress: %s", params)
+            case mcp.LoggingMessageNotification(params=params):
+                # Map MCP log levels to Python logging integer levels
+                level_map = {
+                    "debug": logging.DEBUG,
+                    "info": logging.INFO,
+                    "notice": logging.INFO,
+                    "warning": logging.WARNING,
+                    "error": logging.ERROR,
+                    "critical": logging.CRITICAL,
+                    "alert": logging.CRITICAL,
+                    "emergency": logging.CRITICAL,
+                }
+
+                log_level = level_map[params.level]
+                logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
+                mcp_logger = get_logger(logger_name)
+                log_msg = str(params.data) if params.data else "MCP server log message"
+                mcp_logger.log(log_level, log_msg)
+
+            case mcp.ResourceUpdatedNotification(uri=uri):
+                logger.info("MCP resource updated: %s", uri)
+            case mcp.types.ResourceListChangedNotification(params=params):
+                logger.info("MCP resource list changed: %s", params)
+            case mcp.types.ToolListChangedNotification(params=params):
+                logger.info("MCP tool list changed: %s", params)
+                await self._refresh_tools()
+            case mcp.types.PromptListChangedNotification(params=params):
+                logger.info("MCP prompt list changed: %s", params)
+
+    async def _refresh_tools(self):
+        """Refresh available tools from the server."""
+        if not self.session:
+            logger.warning("Cannot refresh tools: not connected to MCP server")
+            return
+
+        try:
+            result = await self.session.list_tools()
+            old_count = len(self._available_tools)
+            self._available_tools = result.tools
+            new_count = len(self._available_tools)
+            logger.info("Refreshed MCP tools: %d -> %d tools", old_count, new_count)
+        except Exception:
+            logger.exception("Failed to refresh MCP tools")
 
     async def _default_elicitation_callback(
         self,
