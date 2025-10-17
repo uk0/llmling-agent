@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
@@ -90,7 +90,7 @@ class MCPManager(ResourceProvider):
         """Add a new MCP server to the manager."""
         match server:
             case str() if server.startswith("http") and server.endswith("/sse"):
-                resolved: BaseMCPServerConfig = SSEMCPServerConfig(url=server)
+                resolved: MCPServerConfig = SSEMCPServerConfig(url=server)
             case str() if server.startswith("http"):
                 resolved = StreamableHTTPMCPServerConfig(url=server)
             case str():
