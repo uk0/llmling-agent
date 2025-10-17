@@ -224,42 +224,17 @@ class MCPManager(ResourceProvider):
         """Set up a single MCP server connection."""
         if not config.enabled:
             return
-        env = config.get_env_vars()
-        match config:
-            case StdioMCPServerConfig(command=command, args=args):
-                client = MCPClient(
-                    transport_mode="stdio",
-                    elicitation_callback=self._elicitation_callback,
-                    sampling_callback=self._sampling_callback,
-                    progress_handler=self._progress_handler,
-                    accessible_roots=self._accessible_roots,
-                )
-                client = await self.exit_stack.enter_async_context(client)
-                await client.connect(command, args=args, env=env)
-                client_id = f"{command}_{' '.join(args)}"
-            case SSEMCPServerConfig(url=url):
-                client = MCPClient(
-                    transport_mode="sse",
-                    elicitation_callback=self._elicitation_callback,
-                    sampling_callback=self._sampling_callback,
-                    progress_handler=self._progress_handler,
-                    accessible_roots=self._accessible_roots,
-                )
-                client = await self.exit_stack.enter_async_context(client)
-                await client.connect("", [], url=url, env=env)
-                client_id = f"sse_{url}"
-            case StreamableHTTPMCPServerConfig(url=url):
-                client = MCPClient(
-                    transport_mode="streamable-http",
-                    elicitation_callback=self._elicitation_callback,
-                    sampling_callback=self._sampling_callback,
-                    progress_handler=self._progress_handler,
-                    accessible_roots=self._accessible_roots,
-                )
-                client = await self.exit_stack.enter_async_context(client)
-                await client.connect("", [], url=url, env=env)
-                client_id = f"streamable_http_{url}"
-        self.clients[client_id] = client
+
+        client = MCPClient(
+            elicitation_callback=self._elicitation_callback,
+            sampling_callback=self._sampling_callback,
+            progress_handler=self._progress_handler,
+            accessible_roots=self._accessible_roots,
+        )
+        client = await self.exit_stack.enter_async_context(client)
+        await client.connect(config)
+
+        self.clients[config.client_id] = client
 
     async def get_tools(self) -> list[Tool]:
         """Get all tools from all connected servers."""

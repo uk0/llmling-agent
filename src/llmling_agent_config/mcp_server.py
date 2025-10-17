@@ -58,6 +58,11 @@ class BaseMCPServerConfig(Schema):
         env["PYTHONIOENCODING"] = "utf-8"
         return env
 
+    @property
+    def client_id(self) -> str:
+        """Generate a unique client ID for this server configuration."""
+        raise NotImplementedError
+
 
 class StdioMCPServerConfig(BaseMCPServerConfig):
     """MCP server started via stdio.
@@ -79,6 +84,11 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         """Create a MCP server from a command string."""
         cmd, args = command.split(maxsplit=1)
         return cls(command=cmd, args=args.split())
+
+    @property
+    def client_id(self) -> str:
+        """Generate a unique client ID for this stdio server configuration."""
+        return f"{self.command}_{' '.join(self.args)}"
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer
@@ -106,6 +116,11 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
 
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the SSE server."""
+
+    @property
+    def client_id(self) -> str:
+        """Generate a unique client ID for this SSE server configuration."""
+        return f"sse_{self.url}"
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer
@@ -137,6 +152,11 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
 
     auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
     """OAuth settings for the HTTP server."""
+
+    @property
+    def client_id(self) -> str:
+        """Generate a unique client ID for this streamable HTTP server configuration."""
+        return f"streamable_http_{self.url}"
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer

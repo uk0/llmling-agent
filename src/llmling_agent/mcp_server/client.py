@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.pool_server import TransportType
+    from llmling_agent_config.mcp_server import MCPServerConfig
 
 logger = get_logger(__name__)
 
@@ -64,14 +64,12 @@ class MCPClient:
 
     def __init__(
         self,
-        transport_mode: TransportType = "stdio",
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
         progress_handler: ProgressHandler | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
-        self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
@@ -174,20 +172,11 @@ class MCPClient:
             logger.exception("Sampling handler failed")
             return f"Sampling failed: {e}"
 
-    async def connect(
-        self,
-        command: str,
-        args: list[str],
-        env: dict[str, str] | None = None,
-        url: str | None = None,
-    ):
+    async def connect(self, config: MCPServerConfig):
         """Connect to an MCP server using FastMCP.
 
         Args:
-            command: Command to run (for stdio servers)
-            args: Command arguments (for stdio servers)
-            env: Optional environment variables
-            url: Server URL (for HTTP servers)
+            config: MCP server configuration object
         """
         import fastmcp
 
@@ -224,27 +213,35 @@ class MCPClient:
             # Lazy import fastmcp to avoid startup overhead
             import fastmcp
 
-            if self._transport_mode == "stdio":
-                # Use StdioTransport directly
-                from fastmcp.client.transports import StdioTransport
+            from llmling_agent_config.mcp_server import (
+                SSEMCPServerConfig,
+                StdioMCPServerConfig,
+                StreamableHTTPMCPServerConfig,
+            )
 
-                transport = StdioTransport(command=command, args=args, env=env or {})
-                self._client = fastmcp.Client(transport, **client_kwargs)
+            match config:
+                case StdioMCPServerConfig(command=command, args=args):
+                    # Use StdioTransport directly
+                    from fastmcp.client.transports import StdioTransport
 
-            elif self._transport_mode in ("sse", "streamable-http"):
-                if not url:
-                    msg = f"URL required for {self._transport_mode} transport"
+                    env = config.get_env_vars()
+                    transport = StdioTransport(command=command, args=args, env=env)
+                    self._client = fastmcp.Client(transport, **client_kwargs)
+
+                case SSEMCPServerConfig(url=url):
+                    # FastMCP auto-detects SSE transport from URL
+                    sse_url = (
+                        url.rstrip("/") + "/sse" if not url.endswith("/sse") else url
+                    )
+                    self._client = fastmcp.Client(sse_url, **client_kwargs)
+
+                case StreamableHTTPMCPServerConfig(url=url):
+                    # FastMCP auto-detects streamable HTTP transport
+                    self._client = fastmcp.Client(url, **client_kwargs)
+
+                case _:
+                    msg = f"Unsupported server config type: {type(config)}"
                     raise ValueError(msg)  # noqa: TRY301
-
-                # FastMCP auto-detects transport type from URL
-                if self._transport_mode == "sse" and not url.endswith("/sse"):
-                    url = url.rstrip("/") + "/sse"
-
-                self._client = fastmcp.Client(url, **client_kwargs)
-
-            else:
-                msg = f"Unsupported transport mode: {self._transport_mode}"
-                raise ValueError(msg)  # noqa: TRY301
 
             # Connect to server
             await self._client.__aenter__()
