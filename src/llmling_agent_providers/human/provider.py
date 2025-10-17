@@ -226,8 +226,5 @@ class HumanProvider(AgentProvider):
             else:
                 # Regular message
                 _event = UIEventData(source=self.name, type="message", content=content)
-
-            # self.agent.message_received.emit(event)
-
         except Exception:
             logger.exception("Failed to handle input")

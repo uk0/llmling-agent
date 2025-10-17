@@ -35,12 +35,14 @@ class NodeLogger:
         self.conversation_id = str(uuid4())
         self.message_history = ChatMessageContainer()
         self.toolcall_history = EventedList[ToolCallInfo]()
-
+        node.message_received.connect(self.message_history.append)
+        node.message_sent.connect(self.message_history.append)
         # Initialize conversation record if enabled
         if enable_db_logging:
             self.init_conversation()
             # Connect to the combined signal to capture all messages
-            node.message_received.connect(self.log_message)
+            # TODO: need to check this
+            # node.message_received.connect(self.log_message)
             node.message_sent.connect(self.log_message)
             node.tool_used.connect(self.log_tool_call)
 
@@ -68,8 +70,6 @@ class NodeLogger:
 
     def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
-        self.message_history.append(message)
-
         if not self.enable_db_logging:
             return
         self.node.context.storage.log_message_sync(
