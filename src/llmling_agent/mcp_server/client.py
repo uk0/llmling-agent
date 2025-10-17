@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from fastmcp.client.messages import MessageHandler
 from mcp.types import TextContent
 
 from llmling_agent.log import get_logger
@@ -21,7 +19,7 @@ if TYPE_CHECKING:
     import fastmcp
     from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
     from fastmcp.client.logging import LogMessage
-    from fastmcp.client.messages import MessageHandlerT
+    from fastmcp.client.messages import MessageHandler, MessageHandlerT
     from fastmcp.client.sampling import ClientSamplingHandler
     import mcp
     from mcp.client.session import RequestContext
@@ -208,6 +206,8 @@ class MCPClient:
             client_kwargs["sampling_handler"] = self._sampling_handler_impl
         # Create message handler if needed
         if self._use_default_message_handler:
+            from llmling_agent.mcp_server.message_handler import MCPMessageHandler
+
             message_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(
                 self
             )
@@ -221,6 +221,9 @@ class MCPClient:
         client_kwargs = {k: v for k, v in client_kwargs.items() if v is not None}
 
         try:
+            # Lazy import fastmcp to avoid startup overhead
+            import fastmcp
+
             if self._transport_mode == "stdio":
                 # Use StdioTransport directly
                 from fastmcp.client.transports import StdioTransport
@@ -388,89 +391,3 @@ class MCPClient:
             self._current_tool_name = None
             self._current_tool_call_id = None
             self._current_tool_input = None
-
-
-class MCPMessageHandler(MessageHandler):
-    """Custom message handler that bridges FastMCP to llmling-agent notifications."""
-
-    def __init__(self, client: MCPClient) -> None:
-        super().__init__()
-        self.client = client
-
-    async def on_message(self, message: Any) -> None:
-        """Handle generic messages."""
-
-    async def on_request(self, message: Any) -> None:
-        """Handle requests."""
-
-    async def on_notification(self, message: Any) -> None:
-        """Handle server notifications."""
-
-    async def on_tool_list_changed(
-        self, message: mcp.types.ToolListChangedNotification
-    ) -> None:
-        """Handle tool list changes by refreshing tools."""
-        logger.info("MCP tool list changed: %s", message)
-        # Schedule async refresh - use create_task to avoid blocking
-        task = asyncio.create_task(self.client._refresh_tools())
-        # Store reference to avoid warning about unawaited task
-        task.add_done_callback(
-            lambda t: t.exception() if t.done() and t.exception() else None
-        )
-
-    async def on_resource_list_changed(
-        self, message: mcp.types.ResourceListChangedNotification
-    ) -> None:
-        """Handle resource list changes."""
-        logger.info("MCP resource list changed: %s", message)
-
-    async def on_resource_updated(self, message: Any) -> None:
-        """Handle resource updates."""
-        logger.info("MCP resource updated: %s", getattr(message, "uri", "unknown"))
-
-    async def on_progress(self, message: Any) -> None:
-        """Handle progress notifications with proper context."""
-        if self.client._progress_handler:
-            # Use stored tool execution context - handle both coroutines and awaitables
-            try:
-                awaitable = self.client._progress_handler(
-                    self.client._current_tool_name or "",
-                    self.client._current_tool_call_id or "",
-                    self.client._current_tool_input or {},
-                    getattr(message, "progress", 0.0),
-                    getattr(message, "total", None),
-                    getattr(message, "message", None),
-                )
-                # Use ensure_future to handle both coroutines and awaitables
-                task = asyncio.ensure_future(awaitable)
-                # Store reference to avoid warning about unawaited task
-                task.add_done_callback(
-                    lambda t: t.exception() if t.done() and t.exception() else None
-                )
-            except Exception:
-                logger.exception("Failed to handle progress notification")
-
-    async def on_prompt_list_changed(self, message: Any) -> None:
-        """Handle prompt list changes."""
-        logger.info("MCP prompt list changed: %s", message)
-
-    async def on_cancelled(self, message: Any) -> None:
-        """Handle cancelled operations."""
-        logger.info("MCP operation cancelled: %s", message)
-
-    async def on_logging_message(self, message: Any) -> None:
-        """Handle server log messages."""
-        # This is handled by _log_handler, but keep for completeness
-
-    async def on_exception(self, message: Exception) -> None:
-        """Handle exceptions."""
-        logger.error("MCP client exception: %s", message)
-
-    async def on_ping(self, message: Any) -> None:
-        """Handle ping requests."""
-
-    async def on_list_roots(self, message: Any) -> None:
-        """Handle list roots requests."""
-
-    async def on_create_message(self, message: Any) -> None:
-        """Handle create message requests."""
