@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from schemez import create_schema
@@ -12,6 +13,90 @@ from llmling_agent.tools.base import Tool
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+
+async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
+    """Fallback signature extraction from tool schema."""
+    schema = tool.schema["function"]
+    params = schema.get("parameters", {}).get("properties", {})
+    required = set(schema.get("required", []))
+
+    type_map = {
+        "string": "str",
+        "integer": "int",
+        "number": "float",
+        "boolean": "bool",
+        "array": "list",
+        "object": "dict",
+    }
+
+    param_strs = []
+    for name, param_info in params.items():
+        param_type = param_info.get("type", "Any")
+        type_hint = type_map.get(param_type, "Any")
+
+        if name not in required:
+            param_strs.append(f"{name}: {type_hint} = None")
+        else:
+            param_strs.append(f"{name}: {type_hint}")
+
+    return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
+
+
+async def _get_return_model_name(tool: Tool) -> str:
+    """Get the return model name for a tool."""
+    try:
+        callable_func = tool.callable.callable
+        schema = create_schema(callable_func)
+        return_schema = schema.returns
+
+        if return_schema.get("type") == "object":
+            return f"{tool.name.title()}Response"
+        if return_schema.get("type") == "array":
+            return f"list[{tool.name.title()}Item]"
+
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+        }
+        return type_map.get(return_schema.get("type", "string"), "Any")
+    except Exception:  # noqa: BLE001
+        return "Any"
+
+
+async def _get_function_signature(tool: Tool) -> str:
+    """Extract function signature using schemez."""
+    try:
+        return_model_name = await _get_return_model_name(tool)
+        return await _extract_basic_signature(tool, return_model_name)
+    except Exception:  # noqa: BLE001
+        return await _extract_basic_signature(tool, "Any")
+
+
+async def _generate_return_models(all_tools: list[Tool]) -> str:
+    """Generate Pydantic models for tool return types using schemez."""
+    model_parts = []
+
+    for tool in all_tools:
+        try:
+            callable_func = tool.callable.callable
+            schema = create_schema(callable_func)
+
+            if schema.returns.get("type") not in {"object", "array"}:
+                continue
+
+            class_name = f"{tool.name.title()}Response"
+            model_code = schema.to_pydantic_model_code(class_name=class_name)
+
+            if model_code.strip():
+                model_parts.append(model_code.strip())
+
+        except Exception:  # noqa: BLE001
+            continue
+
+    return "\n\n".join(model_parts) if model_parts else ""
 
 
 class CodeModeResourceProvider(ResourceProvider):
@@ -95,7 +180,7 @@ class CodeModeResourceProvider(ResourceProvider):
             return "Execute Python code (no tools available)"
 
         # Generate return type models if available
-        return_models = await self._generate_return_models(all_tools)
+        return_models = await _generate_return_models(all_tools)
 
         parts = [
             "Execute Python code with the following tools available as async functions:",
@@ -113,7 +198,7 @@ class CodeModeResourceProvider(ResourceProvider):
 
         for tool in all_tools:
             if self.include_signatures:
-                signature = await self._get_function_signature(tool)
+                signature = await _get_function_signature(tool)
                 parts.append(f"async def {signature}:")
             else:
                 parts.append(f"async def {tool.name}(...):")
@@ -139,41 +224,6 @@ class CodeModeResourceProvider(ResourceProvider):
 
         return "\n".join(parts)
 
-    async def _get_function_signature(self, tool: Tool) -> str:
-        """Extract function signature using schemez."""
-        try:
-            return_model_name = await self._get_return_model_name(tool)
-            return await self._extract_basic_signature(tool, return_model_name)
-        except Exception:  # noqa: BLE001
-            return await self._extract_basic_signature(tool, "Any")
-
-    async def _extract_basic_signature(self, tool: Tool, return_type: str = "Any") -> str:
-        """Fallback signature extraction from tool schema."""
-        schema = tool.schema["function"]
-        params = schema.get("parameters", {}).get("properties", {})
-        required = set(schema.get("required", []))
-
-        type_map = {
-            "string": "str",
-            "integer": "int",
-            "number": "float",
-            "boolean": "bool",
-            "array": "list",
-            "object": "dict",
-        }
-
-        param_strs = []
-        for name, param_info in params.items():
-            param_type = param_info.get("type", "Any")
-            type_hint = type_map.get(param_type, "Any")
-
-            if name not in required:
-                param_strs.append(f"{name}: {type_hint} = None")
-            else:
-                param_strs.append(f"{name}: {type_hint}")
-
-        return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
-
     async def _build_execution_namespace(self) -> dict[str, Any]:
         """Build Python namespace with tool functions and generated models."""
         namespace = {
@@ -196,17 +246,13 @@ class CodeModeResourceProvider(ResourceProvider):
 
         # Add generated model classes to namespace
         if self._models_code_cache is None:
-            self._models_code_cache = await self._generate_return_models(
+            self._models_code_cache = await _generate_return_models(
                 await self._collect_all_tools()
             )
 
         if self._models_code_cache:
-            try:
+            with contextlib.suppress(Exception):
                 exec(self._models_code_cache, namespace)
-            except Exception:  # noqa: BLE001
-                # If model execution fails, continue without models
-                pass
-
         return namespace
 
     async def _collect_all_tools(self) -> list[Tool]:
@@ -224,51 +270,6 @@ class CodeModeResourceProvider(ResourceProvider):
         self._tools_cache = all_tools
         return all_tools
 
-    async def _generate_return_models(self, all_tools: list[Tool]) -> str:
-        """Generate Pydantic models for tool return types using schemez."""
-        model_parts = []
-
-        for tool in all_tools:
-            try:
-                callable_func = tool.callable.callable
-                schema = create_schema(callable_func)
-
-                if schema.returns.get("type") not in {"object", "array"}:
-                    continue
-
-                class_name = f"{tool.name.title()}Response"
-                model_code = schema.to_pydantic_model_code(class_name=class_name)
-
-                if model_code.strip():
-                    model_parts.append(model_code.strip())
-
-            except Exception:  # noqa: BLE001
-                continue
-
-        return "\n\n".join(model_parts) if model_parts else ""
-
-    async def _get_return_model_name(self, tool: Tool) -> str:
-        """Get the return model name for a tool."""
-        try:
-            callable_func = tool.callable.callable
-            schema = create_schema(callable_func)
-            return_schema = schema.returns
-
-            if return_schema.get("type") == "object":
-                return f"{tool.name.title()}Response"
-            if return_schema.get("type") == "array":
-                return f"list[{tool.name.title()}Item]"
-
-            type_map = {
-                "string": "str",
-                "integer": "int",
-                "number": "float",
-                "boolean": "bool",
-            }
-            return type_map.get(return_schema.get("type", "string"), "Any")
-        except Exception:  # noqa: BLE001
-            return "Any"
-
 
 if __name__ == "__main__":
     import asyncio
@@ -284,10 +285,10 @@ if __name__ == "__main__":
 
     async def main():
         provider = CodeModeResourceProvider([static_provider])
-        async with Agent(model="openai:gpt-4o-mini") as agent:
+        async with Agent(model="openai:gpt-5-nano") as agent:
             agent.tools.add_provider(provider)
             result = await agent.run(
-                "Use the available open() function to open a web browser with URL https://www.google.com. Write code that uses the async open function provided in the tools."
+                "open a web browser with URL https://www.google.com."
             )
             print(result)
 
