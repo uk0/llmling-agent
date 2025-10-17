@@ -15,7 +15,7 @@ async def fix_code(ctx: Context, code: str) -> str:
     has_issues_result = await ctx.sample(
         f"Does this code have any syntax errors, bugs, or style issues?\n\n{code}\n\n"
         "Respond with only 'yes' or 'no'.",
-        max_tokens=300,
+        max_tokens=500,
         system_prompt="You are a code reviewer. Respond with only 'yes' or 'no'.",
         model_preferences=prefs,
     )
