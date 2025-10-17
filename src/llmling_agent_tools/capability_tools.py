@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling import ToolError
+from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.tools import RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -41,8 +43,6 @@ async def delegate_to(  # noqa: D417
     Returns:
         The result of the delegated task
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     if not ctx.pool:
@@ -73,8 +73,6 @@ async def list_available_agents(  # noqa: D417
     Returns:
         List of agent names that you can use with delegate_to
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     if not ctx.pool:
@@ -112,8 +110,6 @@ async def list_available_teams(  # noqa: D417
     Returns:
         Formatted list of teams with their descriptions and types
     """
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent import TeamRun
 
     if isinstance(ctx, RunContext):
@@ -151,8 +147,6 @@ async def create_worker_agent[TDeps](
     The new agent will be available as a tool for delegating specific tasks.
     It inherits the current model unless overridden.
     """
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent import Agent
 
     if isinstance(ctx, RunContext):
@@ -185,9 +179,6 @@ async def spawn_delegate[TDeps](
     Creates an ephemeral agent that will execute the task and clean up automatically
     Optionally connects back to receive results.
     """
-    from pydantic_ai.exceptions import ModelRetry
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent import Agent
 
     if isinstance(ctx, RunContext):
@@ -223,8 +214,6 @@ async def search_history(
     limit: int = 5,
 ) -> str:
     """Search conversation history."""
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent_storage.formatters import format_output
 
     if isinstance(ctx, RunContext):
@@ -245,8 +234,6 @@ async def show_statistics(
     hours: int = 24,
 ) -> str:
     """Show usage statistics for conversations."""
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent_storage.formatters import format_output
     from llmling_agent_storage.models import StatsFilters
 
@@ -278,8 +265,6 @@ async def show_statistics(
 
 async def execute_python(ctx: AgentContext, code: str) -> str:
     """Execute Python code directly."""
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     try:
@@ -305,8 +290,6 @@ async def execute_command(  # noqa: D417
         output_limit: Maximum bytes of output to return
     """
     import os
-
-    from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
@@ -358,9 +341,6 @@ async def add_agent(  # noqa: D417
     Returns:
         Confirmation message about the created agent
     """
-    from pydantic_ai.exceptions import ModelRetry
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
@@ -393,8 +373,6 @@ async def add_team(  # noqa: D417
             - parallel: Agents process simultaneously
         name: Optional name for the team
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     if not ctx.pool:
@@ -433,9 +411,6 @@ async def ask_agent(  # noqa: D417
     Returns:
         The agent's response
     """
-    from pydantic_ai.exceptions import ModelRetry
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
@@ -486,8 +461,6 @@ async def connect_nodes(  # noqa: D417
         Description of the created connection
     """
     from datetime import timedelta
-
-    from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
@@ -547,7 +520,6 @@ async def read_file(  # noqa: D417
     Returns:
         File content, optionally converted to markdown
     """
-    from pydantic_ai.tools import RunContext
     from upathtools import read_path
 
     if isinstance(ctx, RunContext):
@@ -636,8 +608,6 @@ async def start_process(  # noqa: D417
     Returns:
         Process ID for tracking the background process
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -664,8 +634,6 @@ async def get_process_output(ctx: AgentContext, process_id: str) -> str:  # noqa
     Returns:
         Current process output (stdout + stderr)
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -696,8 +664,6 @@ async def wait_for_process(ctx: AgentContext, process_id: str) -> str:  # noqa: 
     Returns:
         Final process output and exit code
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -728,8 +694,6 @@ async def kill_process(ctx: AgentContext, process_id: str) -> str:  # noqa: D417
     Returns:
         Confirmation message
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -752,8 +716,6 @@ async def release_process(ctx: AgentContext, process_id: str) -> str:  # noqa: D
     Returns:
         Confirmation message
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -773,8 +735,6 @@ async def list_processes(ctx: AgentContext) -> str:
     Returns:
         List of process IDs and basic information
     """
-    from pydantic_ai.tools import RunContext
-
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
 
@@ -817,7 +777,6 @@ async def ask_user(  # noqa: D417
         The user's response as a string
     """
     from mcp.types import ElicitRequestParams, ElicitResult, ErrorData
-    from pydantic_ai.tools import RunContext
 
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
@@ -857,8 +816,6 @@ async def add_local_mcp_server(  # noqa: D417
     Returns:
         Confirmation message about the added server
     """
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
     if isinstance(ctx, RunContext):
@@ -888,8 +845,6 @@ async def add_remote_mcp_server(  # noqa: D417
     Returns:
         Confirmation message about the added server
     """
-    from pydantic_ai.tools import RunContext
-
     from llmling_agent_config.mcp_server import (
         SSEMCPServerConfig,
         StreamableHTTPMCPServerConfig,
