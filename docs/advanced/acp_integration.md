@@ -13,16 +13,10 @@ ACP provides:
 
 ## Installation & Setup
 
-Install llmling-agent with ACP support:
+Using uvx for one-off usage:
 
 ```bash
-pip install llmling-agent[acp]
-```
-
-Or using uvx for one-off usage:
-
-```bash
-uvx --python 3.13 llmling-agent[acp]@latest acp --help
+uvx --python 3.13 llmling-agent[default]@latest serve-acp --help
 ```
 
 ## CLI Usage
@@ -35,17 +29,6 @@ Start an ACP server from a configuration file:
 llmling-agent serve-acp agents.yml
 ```
 
-With file system access enabled:
-
-```bash
-llmling-agent serve-acp agents.yml --file-access
-```
-
-With full capabilities (file system + terminal):
-
-```bash
-llmling-agent serve-acp agents.yml --file-access --terminal-access
-```
 
 ### Available Options
 
@@ -85,6 +68,7 @@ Add this configuration to your Zed `settings.json`:
 ```
 
 This configuration:
+
 - Uses uvx to run the latest version without local installation
 - Points to a remote configuration file with multiple expert agents
 - Specifies OpenAI as the model provider
@@ -120,6 +104,7 @@ agents:
 ```
 
 Each agent appears as a separate "mode" in the IDE interface, allowing users to:
+
 - Switch between specialized agents for different tasks
 - Maintain separate conversation contexts per agent
 - Access agent-specific capabilities and tools
