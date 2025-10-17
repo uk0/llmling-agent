@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import ast
-import json
-import subprocess
-import tempfile
 from typing import TYPE_CHECKING, Any
 
 from schemez import create_schema
@@ -65,7 +62,8 @@ class CodeModeResourceProvider(ResourceProvider):
         if context_vars:
             namespace.update(context_vars)
 
-        try:  # Parse the code to check for return statements or _result assignment
+        # Parse the code to check for return statements, _result assignment, and await usage
+        try:
             tree = ast.parse(python_code)
             has_return = any(isinstance(node, ast.Return) for node in ast.walk(tree))
             has_result_assignment = any(
@@ -73,12 +71,15 @@ class CodeModeResourceProvider(ResourceProvider):
                 and any(isinstance(t, ast.Name) and t.id == "_result" for t in n.targets)
                 for n in ast.walk(tree)
             )
+            has_await = any(isinstance(node, ast.Await) for node in ast.walk(tree))
         except SyntaxError:
             has_return = False
             has_result_assignment = False
+            has_await = False
 
-        if has_return:  # Execute the code
-            # Code has explicit returns, execute as function
+        # Execute the code
+        if has_return or has_await:
+            # Code has explicit returns or await, execute as function
             func_code = f"""
 async def _exec_func():
 {chr(10).join("    " + line for line in python_code.splitlines())}
@@ -226,61 +227,25 @@ async def _exec_func():
         return all_tools
 
     async def _generate_return_models(self, all_tools: list[Tool]) -> str:
-        """Generate Pydantic models for tool return types using datamodel-codegen."""
-        try:
-            # Check if datamodel-codegen is available
-            subprocess.run(
-                ["datamodel-codegen", "--version"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # datamodel-codegen not available, skip model generation
-            return ""
-
+        """Generate Pydantic models for tool return types using schemez."""
         model_parts = []
 
         for tool in all_tools:
             try:
-                # Get return schema from schemez
+                # Get schema from schemez
                 callable_func = tool.callable.callable
                 schema = create_schema(callable_func)
-                return_schema = schema.returns
 
                 # Skip if return type is too simple
-                if return_schema.get("type") not in {"object", "array"}:
+                if schema.returns.get("type") not in {"object", "array"}:
                     continue
 
-                # Create temporary file for schema
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as f:
-                    json.dump(return_schema, f)
-                    schema_file = f.name
+                # Use schemez to generate the model code
+                class_name = f"{tool.name.title()}Response"
+                model_code = schema.to_pydantic_model_code(class_name=class_name)
 
-                # Generate model using datamodel-codegen
-                result = subprocess.run(
-                    [
-                        "datamodel-codegen",
-                        "--input",
-                        schema_file,
-                        "--input-file-type",
-                        "jsonschema",
-                        "--output-model-type",
-                        "pydantic.BaseModel",
-                        "--class-name",
-                        f"{tool.name.title()}Response",
-                        "--disable-timestamp",
-                        "--use-union-operator",
-                    ],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-
-                if result.stdout.strip():
-                    model_parts.append(result.stdout.strip())
+                if model_code.strip():
+                    model_parts.append(model_code.strip())
 
             except Exception:  # noqa: BLE001
                 # Skip this tool if model generation fails
@@ -313,18 +278,21 @@ async def _exec_func():
 
 if __name__ == "__main__":
     import asyncio
+    import logging
+    import sys
     import webbrowser
 
     from llmling_agent import Agent
     from llmling_agent.resource_providers.static import StaticResourceProvider
 
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
 
     async def main():
-        #     provider = CodeModeResourceProvider([static_provider])
+        provider = CodeModeResourceProvider([static_provider])
         #     tools = await provider.get_tools()
         async with Agent(model="openai:gpt-5-nano") as agent:
-            agent.tools.add_provider(static_provider)
+            agent.tools.add_provider(provider)
             result = await agent.run("Open webbrowser with URL https://www.google.com")
             print(result)
 
