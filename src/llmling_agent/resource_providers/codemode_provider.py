@@ -229,10 +229,7 @@ async def _exec_func():
         all_tools = list(self.wrapped_tools)
 
         for provider in self.wrapped_providers:
-            if provider.requires_async:
-                async with provider:
-                    provider_tools = await provider.get_tools()
-            else:
+            async with provider:
                 provider_tools = await provider.get_tools()
             all_tools.extend(provider_tools)
 

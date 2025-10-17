@@ -62,7 +62,3 @@ class AggregatingResourceProvider(ResourceProvider):
                 continue
         msg = f"Prompt {name!r} not found in any provider"
         raise KeyError(msg)
-
-    @property
-    def requires_async(self) -> bool:
-        return any(p.requires_async for p in self.providers)

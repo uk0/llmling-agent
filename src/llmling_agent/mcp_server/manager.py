@@ -83,10 +83,6 @@ class MCPManager(ResourceProvider):
         self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
 
-    @property
-    def requires_async(self) -> bool:
-        return True
-
     def add_server_config(self, server: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
         match server:

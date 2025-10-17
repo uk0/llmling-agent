@@ -19,8 +19,6 @@ if TYPE_CHECKING:
 class CapabilitiesResourceProvider(ResourceProvider):
     """Provides tools based on agent capabilities."""
 
-    requires_async: bool = False
-
     def __init__(
         self,
         capabilities: Capabilities,
