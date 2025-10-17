@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
+from urllib.parse import urlparse
 
 from pydantic import FileUrl
 from pydantic_ai import RunContext  # noqa: TC002
@@ -194,15 +195,90 @@ class MCPClient:
             command: Command to run (for stdio servers)
             args: Command arguments (for stdio servers)
             env: Optional environment variables
-            url: Server URL (for SSE servers)
+            url: Server URL (for HTTP/HTTPS/WebSocket servers)
+                Supported schemes: http, https, ws, wss
+                - http/https: Uses StreamableHTTP transport by default
+                - http/https ending with "/sse": Auto-selects SSE transport
+                - ws/wss: Uses WebSocket transport (client-only)
+
+        Examples:
+            # Connect to stdio server
+            await client.connect("python", ["-m", "my_mcp_server"])
+
+            # Connect to HTTP server (StreamableHTTP)
+            await client.connect("", [], url="http://localhost:3000/mcp")
+
+            # Connect to SSE server (auto-detected from URL)
+            await client.connect("", [], url="https://api.example.com/mcp/sse")
+
+            # Connect to WebSocket server (client-only - can connect to WS servers)
+            await client.connect("", [], url="ws://localhost:8080/mcp")
         """
         from mcp import ClientSession, StdioServerParameters
+        from mcp.client.sse import sse_client
         from mcp.client.stdio import stdio_client
+        from mcp.client.streamable_http import streamablehttp_client
+        from mcp.client.websocket import websocket_client
 
         if url:
-            logger.info("SSE servers not yet implemented")
-            self.session = None
-            return
+            parsed_url = urlparse(url)
+
+            async with self._enter_lock:
+                if parsed_url.scheme in ("http", "https"):
+                    # Auto-select transport based on URL path or explicit transport_mode
+                    if url.endswith("/sse") or self._transport_mode == "sse":
+                        transport = await self.exit_stack.enter_async_context(
+                            sse_client(url)
+                        )
+                        read_stream, write_stream = transport
+                        if url.endswith("/sse"):
+                            logger.info("Using SSE transport (auto-selected from URL)")
+                        else:
+                            logger.info("Using SSE transport (explicit transport_mode)")
+                    else:
+                        # Default to StreamableHTTP for HTTP URLs
+                        transport = await self.exit_stack.enter_async_context(
+                            streamablehttp_client(url)
+                        )
+                        read_stream, write_stream, _ = transport
+                        logger.info("Using StreamableHTTP transport")
+
+                elif parsed_url.scheme in ("ws", "wss"):
+                    transport = await self.exit_stack.enter_async_context(
+                        websocket_client(url)
+                    )
+                    read_stream, write_stream = transport
+                    logger.info("Using WebSocket transport")
+
+                else:
+                    msg = (
+                        f"Unsupported URL scheme: {parsed_url.scheme}. "
+                        "Supported schemes: http, https, ws, wss"
+                    )
+                    raise ValueError(msg)
+
+                session = ClientSession(
+                    read_stream,
+                    write_stream,
+                    elicitation_callback=self.elicitation_wrapper,
+                    sampling_callback=self.sampling_wrapper,
+                    list_roots_callback=self.list_roots_wrapper,
+                    message_handler=self._message_handler,
+                )
+                self.session = await self.exit_stack.enter_async_context(session)
+                assert self.session
+                init_result = await self.session.initialize()
+                info = init_result.serverInfo
+                # Get available tools
+                result = await self.session.list_tools()
+                self._available_tools = result.tools
+                logger.info(
+                    "Connected to MCP server %s (%s) via %s",
+                    info.name,
+                    info.version,
+                    parsed_url.scheme.upper(),
+                )
+                return
         command = shutil.which(command) or command
         # Stdio connection
         params = StdioServerParameters(command=command, args=args, env=env)

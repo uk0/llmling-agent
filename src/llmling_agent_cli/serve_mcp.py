@@ -27,8 +27,10 @@ logger = get_logger(__name__)
 def serve_command(
     config: str = t.Argument(..., help="Path to agent configuration"),
     transport: TransportType = t.Option("stdio", help="Transport type"),  # noqa: B008
-    host: str = t.Option("localhost", help="Host to bind server to (sse only)"),
-    port: int = t.Option(3001, help="Port to listen on (sse only)"),
+    host: str = t.Option(
+        "localhost", help="Host to bind server to (sse/streamable-http only)"
+    ),
+    port: int = t.Option(3001, help="Port to listen on (sse/streamable-http only)"),
     zed_mode: bool = t.Option(False, help="Enable Zed editor compatibility"),
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
