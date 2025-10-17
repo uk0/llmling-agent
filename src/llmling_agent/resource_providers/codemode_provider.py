@@ -68,13 +68,14 @@ class CodeModeResourceProvider(ResourceProvider):
         try:  # Parse the code to check for return statements or _result assignment
             tree = ast.parse(python_code)
             has_return = any(isinstance(node, ast.Return) for node in ast.walk(tree))
-            any(
+            has_result_assignment = any(
                 isinstance(n, ast.Assign)
                 and any(isinstance(t, ast.Name) and t.id == "_result" for t in n.targets)
                 for n in ast.walk(tree)
             )
         except SyntaxError:
             has_return = False
+            has_result_assignment = False
 
         if has_return:  # Execute the code
             # Code has explicit returns, execute as function
@@ -91,8 +92,10 @@ async def _exec_func():
         except SyntaxError:
             # Execute as statements
             exec(compile(python_code, "<meta_tool>", "exec"), namespace)
-            # Return _result if set, otherwise None
-            return namespace.get("_result")
+            # Return _result if explicitly set, otherwise None
+            if has_result_assignment:
+                return namespace.get("_result")
+            return None
 
     async def _build_tool_description(self) -> str:
         """Generate comprehensive tool description with available functions."""
@@ -146,23 +149,16 @@ async def _exec_func():
     async def _get_function_signature(self, tool: Tool) -> str:
         """Extract function signature using schemez."""
         try:
-            # Get the actual callable from the tool
-            callable_func = tool.callable.callable
-
-            # Create schema using schemez
+            callable_func = tool.callable.callable  # Get the actual callable
             schema = create_schema(callable_func)
-
-            # Convert back to Python signature
-            sig = schema.to_python_signature()
-
+            sig = schema.to_python_signature()  # Convert back to Python signature
             # Try to get return type model name
             return_model_name = await self._get_return_model_name(tool)
-
-            # Format as function signature string
         except Exception:  # noqa: BLE001
             # Fallback to basic signature extraction
             return await self._extract_basic_signature(tool)
         else:
+            # Format as function signature string
             return f"{tool.name}{sig} -> {return_model_name}"
 
     async def _extract_basic_signature(self, tool: Tool) -> str:
