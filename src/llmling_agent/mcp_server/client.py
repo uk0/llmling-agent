@@ -172,7 +172,7 @@ class MCPClient:
             logger.exception("Sampling handler failed")
             return f"Sampling failed: {e}"
 
-    async def connect(self, config: MCPServerConfig):
+    async def connect(self, config: MCPServerConfig):  # noqa: PLR0915
         """Connect to an MCP server using FastMCP.
 
         Args:
@@ -184,6 +184,7 @@ class MCPClient:
         client_kwargs: dict[str, Any] = {
             "log_handler": self._log_handler,
             "roots": self._accessible_roots if self._accessible_roots else None,
+            "timeout": config.timeout,
         }
 
         # Add optional handlers
@@ -228,7 +229,7 @@ class MCPClient:
                     transport = StdioTransport(command=command, args=args, env=env)
                     self._client = fastmcp.Client(transport, **client_kwargs)
 
-                case SSEMCPServerConfig(url=url, auth=auth):
+                case SSEMCPServerConfig(url=url, auth=auth, headers=headers):
                     # FastMCP auto-detects SSE transport from URL
                     sse_url = (
                         url.rstrip("/") + "/sse" if not url.endswith("/sse") else url
@@ -239,21 +240,35 @@ class MCPClient:
                         logger.debug("SSE client configured with OAuth authentication")
                     else:
                         logger.debug("SSE client configured without OAuth authentication")
-                    self._client = fastmcp.Client(sse_url, **client_kwargs)
 
-                case StreamableHTTPMCPServerConfig(url=url, auth=auth):
+                    # Create transport with custom headers if provided
+                    if headers:
+                        from fastmcp.client.transports import SSETransport
+
+                        transport = SSETransport(url=sse_url, headers=headers)
+                        self._client = fastmcp.Client(transport, **client_kwargs)
+
+                    else:
+                        self._client = fastmcp.Client(sse_url, **client_kwargs)
+
+                case StreamableHTTPMCPServerConfig(url=url, auth=auth, headers=headers):
                     # FastMCP auto-detects streamable HTTP transport
                     # Add OAuth authentication if enabled
                     if auth.oauth:
                         client_kwargs["auth"] = "oauth"
-                        logger.debug(
-                            "StreamableHTTP client configured with OAuth authentication"
-                        )
+                        logger.debug("StreamableHTTP client configured with OAuth auth")
                     else:
-                        logger.debug(
-                            "StreamableHTTP client configured without OAuth authentication"
-                        )
-                    self._client = fastmcp.Client(url, **client_kwargs)
+                        logger.debug("HTTP client configured without OAuth auth")
+
+                    # Create transport with custom headers if provided
+                    if headers:
+                        from fastmcp.client.transports import StreamableHttpTransport
+
+                        transport = StreamableHttpTransport(url=url, headers=headers)
+                        self._client = fastmcp.Client(transport, **client_kwargs)
+                        logger.debug("HTTP client configured with headers: %s", headers)
+                    else:
+                        self._client = fastmcp.Client(url, **client_kwargs)
 
                 case _:
                     msg = f"Unsupported server config type: {type(config)}"
