@@ -13,4 +13,4 @@ nav = mk.MkNav("YAML Configuration")
 @nav.route.page("Auto-generated website", icon="octicon:file-code-16")
 def _(page: mk.MkPage):
     """Complete manifest structure and organization."""
-    _agent = Agent[None](model="gpt-5-mini")
+    _agent = Agent[None](model="gpt-5-nano")

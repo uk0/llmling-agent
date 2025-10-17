@@ -22,7 +22,7 @@ async with Agent(...) as agent:
     agent.tools.register_tool(my_tool)
 
     # Change model
-    agent.set_model("openai:gpt-5-mini")
+    agent.set_model("openai:gpt-5-nano")
 
     # Clear conversation history
     agent.conversation.clear()

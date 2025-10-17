@@ -40,7 +40,7 @@ for example in iter_examples():
 )
 def gen_docs(page: mk.MkPage):
     """Generate docs using agents."""
-    agent = Agent[None](model="openai:gpt-5-mini")
+    agent = Agent[None](model="openai:gpt-5-nano")
     content = pathlib.Path("src/llmling_agent/__init__.py")
     page += mk.MkAdmonition(INTRO)
     page += mk.MkCode(pathlib.Path(__file__).read_text(encoding="utf-8"))

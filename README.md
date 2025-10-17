@@ -89,7 +89,7 @@ the framework makes it natural to build systems that combine AI capabilities wit
 The fastest way to start chatting with an AI:
 ```bash
 # Start an ephemeral chat session (requires uv)
-uvx llmling-agent[default] quickstart openai:gpt-5-mini
+uvx llmling-agent[default] quickstart openai:gpt-5-nano
 ```
 
 This creates a temporary agent ready for chat - no configuration needed!
@@ -113,11 +113,11 @@ async def main():
         browser = await pool.add_agent(
             "browser",
             system_prompt="Open Wikipedia pages matching the topics you receive.",
-            model="openai:gpt-5-mini",
+            model="openai:gpt-5-nano",
             tools=["webbrowser.open"],
         )
         # Create main agent and connect
-        agent = await pool.add_agent("assistant", model="openai:gpt-5-mini")
+        agent = await pool.add_agent("assistant", model="openai:gpt-5-nano")
         connection = agent >> browser  # this sets up a permanent connection.
         await agent.run("Tell us a random major city! Just one word!")
         print(connection.stats.total_cost)  # Check cost of this connection
@@ -158,7 +158,7 @@ llmling-agent run assistant --config agents.yml "whats your favourite holiday de
 ### CLI Version (Interactive using slash command system)
 ```bash
 # Start session
-llmling-agent quickstart openai:gpt-5-mini
+llmling-agent quickstart openai:gpt-5-nano
 # Create browser assistant
 /create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
 # Connect the agents
@@ -185,7 +185,7 @@ agents:
         type: "fallback"  # Lot of special "meta-models" included out of the box!
         models:  # Try models in sequence
           - "openai:gpt-5"
-          - "openai:gpt-5-mini"
+          - "openai:gpt-5-nano"
           - "anthropic:claude-sonnet-4-0"
       output_retries: 3  # Max retries for result validation
       defer_model_check: false  # Whether to defer model evaluation
@@ -747,7 +747,7 @@ you can easily generate static documentation for websites with a few lines of co
 @nav.route.page("Feature XYZ", icon="oui:documentation", hide="toc")
 def gen_docs(page: mk.MkPage):
     """Generate docs using agents."""
-    agent = Agent[None](model="openai:gpt-5-mini")
+    agent = Agent[None](model="openai:gpt-5-nano")
     page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
     source_code = load_source_code_from_folder(...)
     page += mk.MkCode() # if you want to display source code
