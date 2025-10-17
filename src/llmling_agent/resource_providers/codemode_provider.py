@@ -68,7 +68,8 @@ class CodeModeResourceProvider(ResourceProvider):
                 exec(python_code, namespace)
                 return await namespace["main"]()
             except IndentationError:
-                # If there's an indentation error, try to fix it by adding proper indentation
+                # If there's an indentation error,
+                # try to fix it by adding proper indentation
                 lines = python_code.splitlines()
                 fixed_lines = []
                 inside_main = False
@@ -205,16 +206,12 @@ async def _exec_func():
             "_result": None,  # Allow explicit result setting
         }
 
-        all_tools = await self._collect_all_tools()
+        for tool in await self._collect_all_tools():  # Create wrapper for each tool
 
-        # Create async wrapper functions for each tool
-        for tool in all_tools:
-            # Create closure to capture tool
             def make_tool_func(t: Tool):
                 async def tool_func(*args, **kwargs):
                     return await t.execute(*args, **kwargs)
 
-                # Copy function metadata for better introspection
                 tool_func.__name__ = t.name
                 tool_func.__doc__ = t.description
                 return tool_func
@@ -240,15 +237,12 @@ async def _exec_func():
 
         for tool in all_tools:
             try:
-                # Get schema from schemez
                 callable_func = tool.callable.callable
-                schema = create_schema(callable_func)
+                schema = create_schema(callable_func)  # Get schema from schemez
 
-                # Skip if return type is too simple
                 if schema.returns.get("type") not in {"object", "array"}:
-                    continue
+                    continue  # Skip if return type is too simple
 
-                # Use schemez to generate the model code
                 class_name = f"{tool.name.title()}Response"
                 model_code = schema.to_pydantic_model_code(class_name=class_name)
 
@@ -256,8 +250,7 @@ async def _exec_func():
                     model_parts.append(model_code.strip())
 
             except Exception:  # noqa: BLE001
-                # Skip this tool if model generation fails
-                continue
+                continue  # Skip this tool if model generation fails
 
         return "\n\n".join(model_parts) if model_parts else ""
 
