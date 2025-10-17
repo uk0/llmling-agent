@@ -245,8 +245,8 @@ class MCPClient:
                     if headers:
                         from fastmcp.client.transports import SSETransport
 
-                        transport = SSETransport(url=sse_url, headers=headers)
-                        self._client = fastmcp.Client(transport, **client_kwargs)
+                        sse_transport = SSETransport(url=sse_url, headers=headers)
+                        self._client = fastmcp.Client(sse_transport, **client_kwargs)
 
                     else:
                         self._client = fastmcp.Client(sse_url, **client_kwargs)
@@ -264,8 +264,8 @@ class MCPClient:
                     if headers:
                         from fastmcp.client.transports import StreamableHttpTransport
 
-                        transport = StreamableHttpTransport(url=url, headers=headers)
-                        self._client = fastmcp.Client(transport, **client_kwargs)
+                        http_transport = StreamableHttpTransport(url=url, headers=headers)
+                        self._client = fastmcp.Client(http_transport, **client_kwargs)
                         logger.debug("HTTP client configured with headers: %s", headers)
                     else:
                         self._client = fastmcp.Client(url, **client_kwargs)
