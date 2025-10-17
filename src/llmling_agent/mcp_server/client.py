@@ -228,15 +228,31 @@ class MCPClient:
                     transport = StdioTransport(command=command, args=args, env=env)
                     self._client = fastmcp.Client(transport, **client_kwargs)
 
-                case SSEMCPServerConfig(url=url):
+                case SSEMCPServerConfig(url=url, auth=auth):
                     # FastMCP auto-detects SSE transport from URL
                     sse_url = (
                         url.rstrip("/") + "/sse" if not url.endswith("/sse") else url
                     )
+                    # Add OAuth authentication if enabled
+                    if auth.oauth:
+                        client_kwargs["auth"] = "oauth"
+                        logger.debug("SSE client configured with OAuth authentication")
+                    else:
+                        logger.debug("SSE client configured without OAuth authentication")
                     self._client = fastmcp.Client(sse_url, **client_kwargs)
 
-                case StreamableHTTPMCPServerConfig(url=url):
+                case StreamableHTTPMCPServerConfig(url=url, auth=auth):
                     # FastMCP auto-detects streamable HTTP transport
+                    # Add OAuth authentication if enabled
+                    if auth.oauth:
+                        client_kwargs["auth"] = "oauth"
+                        logger.debug(
+                            "StreamableHTTP client configured with OAuth authentication"
+                        )
+                    else:
+                        logger.debug(
+                            "StreamableHTTP client configured without OAuth authentication"
+                        )
                     self._client = fastmcp.Client(url, **client_kwargs)
 
                 case _:
