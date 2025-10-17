@@ -211,57 +211,12 @@ class MCPClient:
                 stdio_client(params)
             )
             stdio, write = stdio_transport
-
-            # Create a wrapper that matches the expected signature
-            async def elicitation_wrapper(
-                context: RequestContext,
-                params: mcp.types.ElicitRequestParams,
-            ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
-                if self._elicitation_callback:
-                    return await self._elicitation_callback(context, params)
-                return await self._default_elicitation_callback(context, params)
-
-            async def sampling_wrapper(
-                context: RequestContext,
-                params: mcp.types.CreateMessageRequestParams,
-            ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
-                if self._sampling_callback:
-                    return await self._sampling_callback(context, params)
-                # If no callback provided, let MCP SDK handle with its default
-                import mcp
-
-                return mcp.types.ErrorData(
-                    code=mcp.types.INVALID_REQUEST,
-                    message="Sampling not supported",
-                )
-
-            async def list_roots_wrapper(
-                context: RequestContext,
-            ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
-                """List accessible filesystem roots."""
-                import mcp
-
-                roots = []
-                for root_path in self._accessible_roots:
-                    try:
-                        path = Path(root_path).resolve()
-                        if path.exists():
-                            file_url = FileUrl(path.as_uri())
-                            roots.append(
-                                mcp.types.Root(uri=file_url, name=path.name or str(path))
-                            )
-                    except (OSError, ValueError):
-                        # Skip invalid paths or inaccessible directories
-                        continue
-
-                return mcp.types.ListRootsResult(roots=roots)
-
             session = ClientSession(
                 stdio,
                 write,
-                elicitation_callback=elicitation_wrapper,
-                sampling_callback=sampling_wrapper,
-                list_roots_callback=list_roots_wrapper,
+                elicitation_callback=self.elicitation_wrapper,
+                sampling_callback=self.sampling_wrapper,
+                list_roots_callback=self.list_roots_wrapper,
                 message_handler=self._message_handler,
             )
             self.session = await self.exit_stack.enter_async_context(session)
@@ -272,7 +227,6 @@ class MCPClient:
             result = await self.session.list_tools()
             self._available_tools = result.tools
             logger.info("Connected to MCP server %s (%s)", info.name, info.version)
-            logger.info("Available tools: %s", len(self._available_tools))
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get tools in OpenAI function format."""
@@ -295,7 +249,6 @@ class MCPClient:
             params = mcp.types.PaginatedRequestParams(cursor=cursor)
             result = await self.session.list_prompts(params=params)
             all_prompts.extend(result.prompts)
-
             if result.nextCursor is None:
                 break
             cursor = result.nextCursor
@@ -311,17 +264,13 @@ class MCPClient:
 
         all_resources: list[MCPResource] = []
         cursor = None
-
         while True:
             params = mcp.types.PaginatedRequestParams(cursor=cursor)
             result = await self.session.list_resources(params=params)
             all_resources.extend(result.resources)
-
             if result.nextCursor is None:
                 break
             cursor = result.nextCursor
-
-        # Return the same structure but with all resources
         return all_resources
 
     async def get_prompt(
@@ -368,21 +317,7 @@ class MCPClient:
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
         meta = {"mcp_tool": tool.name}
-        tool_info = Tool.from_callable(tool_callable, source="mcp", metadata=meta)
-
-        # Log the final signature for debugging
-        import inspect
-
-        logger.info(
-            "Tool %s: Final signature: %s", tool.name, inspect.signature(tool_callable)
-        )
-        logger.info(
-            "Tool %s: Final annotations: %s",
-            tool.name,
-            getattr(tool_callable, "__annotations__", {}),
-        )
-
-        return tool_info
+        return Tool.from_callable(tool_callable, source="mcp", metadata=meta)
 
     async def call_tool(
         self,
@@ -443,3 +378,50 @@ class MCPClient:
                 logger.warning("Progress notification handler failed: %s", e)
 
         return progress_callback
+
+    # Create a wrapper that matches the expected signature
+    async def elicitation_wrapper(
+        self,
+        context: RequestContext,
+        params: mcp.types.ElicitRequestParams,
+    ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
+        if self._elicitation_callback:
+            return await self._elicitation_callback(context, params)
+        return await self._default_elicitation_callback(context, params)
+
+    async def sampling_wrapper(
+        self,
+        context: RequestContext,
+        params: mcp.types.CreateMessageRequestParams,
+    ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
+        if self._sampling_callback:
+            return await self._sampling_callback(context, params)
+        # If no callback provided, let MCP SDK handle with its default
+        import mcp
+
+        return mcp.types.ErrorData(
+            code=mcp.types.INVALID_REQUEST,
+            message="Sampling not supported",
+        )
+
+    async def list_roots_wrapper(
+        self,
+        context: RequestContext,
+    ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
+        """List accessible filesystem roots."""
+        import mcp
+
+        roots = []
+        for root_path in self._accessible_roots:
+            try:
+                path = Path(root_path).resolve()
+                if path.exists():
+                    file_url = FileUrl(path.as_uri())
+                    roots.append(
+                        mcp.types.Root(uri=file_url, name=path.name or str(path))
+                    )
+            except (OSError, ValueError):
+                # Skip invalid paths or inaccessible directories
+                continue
+
+        return mcp.types.ListRootsResult(roots=roots)
