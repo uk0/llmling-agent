@@ -314,7 +314,7 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str:
+        async def tool_callable(ctx: RunContext | None = None, **kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params to avoid MCP validation errors
             # Only include parameters that are either required or have non-None values
@@ -330,7 +330,7 @@ class MCPClient:
             }
             logger.debug("Tool %s: Filtered kwargs: %s", tool.name, filtered_kwargs)
             return await self.call_tool(
-                tool.name, filtered_kwargs, tool_call_id=ctx.tool_call_id
+                tool.name, filtered_kwargs, tool_call_id=ctx.tool_call_id if ctx else None
             )
 
         # Set proper signature and docstring
