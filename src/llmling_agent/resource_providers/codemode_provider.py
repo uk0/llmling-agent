@@ -40,10 +40,22 @@ class CodeModeResourceProvider(ResourceProvider):
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
 
+        # Cache for expensive operations
+        self._tools_cache: list[Tool] | None = None
+        self._description_cache: str | None = None
+        self._namespace_cache: dict[str, Any] | None = None
+        self._models_code_cache: str | None = None
+
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
-        desc = await self._build_tool_description()
-        return [Tool.from_callable(self.execute_codemode, description_override=desc)]
+        if self._description_cache is None:
+            self._description_cache = await self._build_tool_description()
+
+        return [
+            Tool.from_callable(
+                self.execute_codemode, description_override=self._description_cache
+            )
+        ]
 
     async def execute_codemode(
         self, python_code: str, context_vars: dict[str, Any] | None = None
@@ -57,49 +69,23 @@ class CodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
-        # Build execution namespace
-        namespace = await self._build_execution_namespace()
+        # Build execution namespace with caching
+        if self._namespace_cache is None:
+            self._namespace_cache = await self._build_execution_namespace()
+
+        # Create a copy to avoid modifying the cache
+        namespace = self._namespace_cache.copy()
         if context_vars:
             namespace.update(context_vars)
 
-        # Execute the code - if it contains main(), call it; otherwise wrap it
-        if "async def main(" in python_code:
-            try:
-                exec(python_code, namespace)
-                return await namespace["main"]()
-            except IndentationError:
-                # If there's an indentation error,
-                # try to fix it by adding proper indentation
-                lines = python_code.splitlines()
-                fixed_lines = []
-                inside_main = False
+        # Simplified execution: require main() function pattern
+        if "async def main(" not in python_code:
+            # Auto-wrap code in main function
+            python_code = f"""async def main():
+{chr(10).join("    " + line for line in python_code.splitlines())}"""
 
-                for line in lines:
-                    if line.strip().startswith("async def main("):
-                        fixed_lines.append(line)
-                        inside_main = True
-                    elif (
-                        inside_main
-                        and line
-                        and not line.startswith("    ")
-                        and not line.startswith("\t")
-                    ):
-                        # Add indentation if missing inside main function
-                        fixed_lines.append("    " + line)
-                    else:
-                        fixed_lines.append(line)
-
-                fixed_code = "\n".join(fixed_lines)
-                exec(fixed_code, namespace)
-                return await namespace["main"]()
-
-        # Fallback: wrap in async function for backwards compatibility
-        func_code = f"""
-async def _exec_func():
-{chr(10).join("    " + line for line in python_code.splitlines())}
-"""
-        exec(func_code, namespace)
-        return await namespace["_exec_func"]()
+        exec(python_code, namespace)
+        return await namespace["main"]()
 
     async def _build_tool_description(self) -> str:
         """Generate comprehensive tool description with available functions."""
@@ -108,7 +94,7 @@ async def _exec_func():
         if not all_tools:
             return "Execute Python code (no tools available)"
 
-        # Generate return type models if datamodel-codegen is available
+        # Generate return type models if available
         return_models = await self._generate_return_models(all_tools)
 
         parts = [
@@ -127,15 +113,12 @@ async def _exec_func():
 
         for tool in all_tools:
             if self.include_signatures:
-                # Use schemez to get proper signature
                 signature = await self._get_function_signature(tool)
                 parts.append(f"async def {signature}:")
             else:
                 parts.append(f"async def {tool.name}(...):")
 
-            # Add docstring if available
             if self.include_docstrings and tool.description:
-                # Properly indent docstring
                 indented_desc = "    " + tool.description.replace("\n", "\n    ")
                 parts.append(f'    """{indented_desc}"""')
             parts.append("")
@@ -143,13 +126,13 @@ async def _exec_func():
         parts.extend([
             "Usage notes:",
             "- Write your code inside an 'async def main():' function",
-            "- IMPORTANT: Properly indent all code inside main() with 4 spaces",
             "- All tool functions are async, use 'await'",
             "- Use 'return' statements to return values from main()",
-            "- Pass parameters as keyword arguments: open(url='...', new=2)",
+            "- Generated model classes are available for type checking",
+            "- DO NOT call asyncio.run() or try to run the main function yourself",
+            "- DO NOT import asyncio or other modules - tools are already available",
             "- Example:",
             "    async def main():",
-            "        # This comment is properly indented",
             "        result = await open(url='https://example.com', new=2)",
             "        return result",
         ])
@@ -159,36 +142,28 @@ async def _exec_func():
     async def _get_function_signature(self, tool: Tool) -> str:
         """Extract function signature using schemez."""
         try:
-            callable_func = tool.callable.callable  # Get the actual callable
-            schema = create_schema(callable_func)
-            sig = schema.to_python_signature()  # Convert back to Python signature
-            # Try to get return type model name
             return_model_name = await self._get_return_model_name(tool)
+            return await self._extract_basic_signature(tool, return_model_name)
         except Exception:  # noqa: BLE001
-            # Fallback to basic signature extraction
-            return await self._extract_basic_signature(tool)
-        else:
-            # Format as function signature string
-            return f"{tool.name}{sig} -> {return_model_name}"
+            return await self._extract_basic_signature(tool, "Any")
 
-    async def _extract_basic_signature(self, tool: Tool) -> str:
+    async def _extract_basic_signature(self, tool: Tool, return_type: str = "Any") -> str:
         """Fallback signature extraction from tool schema."""
         schema = tool.schema["function"]
         params = schema.get("parameters", {}).get("properties", {})
-        required = set(schema.get("required", []))  # type: ignore
+        required = set(schema.get("required", []))
+
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list",
+            "object": "dict",
+        }
 
         param_strs = []
         for name, param_info in params.items():
-            # Map JSON Schema types to Python types
-            type_map = {
-                "string": "str",
-                "integer": "int",
-                "number": "float",
-                "boolean": "bool",
-                "array": "list",
-                "object": "dict",
-            }
-
             param_type = param_info.get("type", "Any")
             type_hint = type_map.get(param_type, "Any")
 
@@ -197,16 +172,17 @@ async def _exec_func():
             else:
                 param_strs.append(f"{name}: {type_hint}")
 
-        return f"{tool.name}({', '.join(param_strs)})"
+        return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
 
     async def _build_execution_namespace(self) -> dict[str, Any]:
-        """Build Python namespace with tool functions."""
+        """Build Python namespace with tool functions and generated models."""
         namespace = {
             "__builtins__": __builtins__,
-            "_result": None,  # Allow explicit result setting
+            "_result": None,
         }
 
-        for tool in await self._collect_all_tools():  # Create wrapper for each tool
+        # Add tool functions
+        for tool in await self._collect_all_tools():
 
             def make_tool_func(t: Tool):
                 async def tool_func(*args, **kwargs):
@@ -218,10 +194,26 @@ async def _exec_func():
 
             namespace[tool.name] = make_tool_func(tool)
 
+        # Add generated model classes to namespace
+        if self._models_code_cache is None:
+            self._models_code_cache = await self._generate_return_models(
+                await self._collect_all_tools()
+            )
+
+        if self._models_code_cache:
+            try:
+                exec(self._models_code_cache, namespace)
+            except Exception:  # noqa: BLE001
+                # If model execution fails, continue without models
+                pass
+
         return namespace
 
     async def _collect_all_tools(self) -> list[Tool]:
-        """Collect all tools from providers and direct tools."""
+        """Collect all tools from providers and direct tools with caching."""
+        if self._tools_cache is not None:
+            return self._tools_cache
+
         all_tools = list(self.wrapped_tools)
 
         for provider in self.wrapped_providers:
@@ -229,6 +221,7 @@ async def _exec_func():
                 provider_tools = await provider.get_tools()
             all_tools.extend(provider_tools)
 
+        self._tools_cache = all_tools
         return all_tools
 
     async def _generate_return_models(self, all_tools: list[Tool]) -> str:
@@ -238,10 +231,10 @@ async def _exec_func():
         for tool in all_tools:
             try:
                 callable_func = tool.callable.callable
-                schema = create_schema(callable_func)  # Get schema from schemez
+                schema = create_schema(callable_func)
 
                 if schema.returns.get("type") not in {"object", "array"}:
-                    continue  # Skip if return type is too simple
+                    continue
 
                 class_name = f"{tool.name.title()}Response"
                 model_code = schema.to_pydantic_model_code(class_name=class_name)
@@ -250,7 +243,7 @@ async def _exec_func():
                     model_parts.append(model_code.strip())
 
             except Exception:  # noqa: BLE001
-                continue  # Skip this tool if model generation fails
+                continue
 
         return "\n\n".join(model_parts) if model_parts else ""
 
@@ -265,7 +258,7 @@ async def _exec_func():
                 return f"{tool.name.title()}Response"
             if return_schema.get("type") == "array":
                 return f"list[{tool.name.title()}Item]"
-            # Map simple types
+
             type_map = {
                 "string": "str",
                 "integer": "int",
@@ -291,10 +284,11 @@ if __name__ == "__main__":
 
     async def main():
         provider = CodeModeResourceProvider([static_provider])
-        #     tools = await provider.get_tools()
-        async with Agent(model="openai:gpt-5-nano") as agent:
+        async with Agent(model="openai:gpt-4o-mini") as agent:
             agent.tools.add_provider(provider)
-            result = await agent.run("Open webbrowser with URL https://www.google.com")
+            result = await agent.run(
+                "Use the available open() function to open a web browser with URL https://www.google.com. Write code that uses the async open function provided in the tools."
+            )
             print(result)
 
     asyncio.run(main())
