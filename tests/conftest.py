@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from pydantic_ai.models.test import TestModel
@@ -12,6 +13,29 @@ from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest
 
 
 TEST_RESPONSE = "I am a test response"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_logfire():
+    """Disable logfire for all tests."""
+    # Set environment variable to disable logfire
+    os.environ["LOGFIRE_DISABLE"] = "true"
+    # Also disable observability entirely
+    os.environ["OBSERVABILITY_ENABLED"] = "false"
+
+    # Mock logfire configure to be a no-op
+    try:
+        import logfire
+
+        original_configure = logfire.configure
+        logfire.configure = lambda *args, **kwargs: None
+        yield
+        logfire.configure = original_configure
+    except ImportError:
+        # logfire not available, nothing to disable
+        yield
+
+
 VALID_CONFIG = """\
 responses:
   SupportResult:
