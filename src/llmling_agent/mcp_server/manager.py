@@ -25,9 +25,10 @@ from llmling_agent_providers.base import UsageLimits
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from fastmcp.client.elicitation import ElicitResult
     from mcp import types
     from mcp.client.session import RequestContext
-    from mcp.types import Prompt as MCPPrompt, Resource as MCPResource
+    from mcp.types import Prompt as MCPPrompt, Resource as MCPResource, SamplingMessage
 
     from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent.messaging.context import NodeContext
@@ -128,35 +129,45 @@ class MCPManager(ResourceProvider):
 
     async def _elicitation_callback(
         self,
-        context: RequestContext,
+        message: str,
+        response_type: type[Any],
         params: types.ElicitRequestParams,
-    ) -> types.ElicitResult | types.ErrorData:
+        context: RequestContext,
+    ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
         """Handle elicitation requests from MCP server."""
+        from fastmcp.client.elicitation import ElicitResult
         from mcp import types
 
         from llmling_agent.agent.context import AgentContext
 
         if self.context and isinstance(self.context, AgentContext):
-            return await self.context.handle_elicitation(params)
-        return types.ErrorData(
-            code=types.INVALID_REQUEST,
-            message="Elicitation not supported - no agent context available",
-        )
+            legacy_result = await self.context.handle_elicitation(params)
+            # Convert legacy MCP result to FastMCP format
+            if isinstance(legacy_result, types.ElicitResult):
+                if legacy_result.action == "accept" and legacy_result.content:
+                    return legacy_result.content
+                return ElicitResult(action=legacy_result.action)
+            if isinstance(legacy_result, types.ErrorData):
+                return ElicitResult(action="cancel")
+            return ElicitResult(action="decline")
+
+        return ElicitResult(action="decline")
 
     async def _sampling_callback(
         self,
-        context: RequestContext,
+        messages: list[SamplingMessage],
         params: types.CreateMessageRequestParams,
-    ) -> types.CreateMessageResult | types.ErrorData:
+        context: RequestContext,
+    ) -> str:
         """Handle MCP sampling by creating a new agent with specified preferences."""
         from mcp import types
 
         from llmling_agent.agent import Agent
 
         try:
-            # Convert MCP messages to prompts for the agent
+            # Convert messages to prompts for the agent
             prompts: list[BaseContent | str] = []
-            for mcp_msg in params.messages:
+            for mcp_msg in messages:
                 match mcp_msg.content:
                     case types.TextContent(text=text):
                         prompts.append(text)
@@ -203,21 +214,13 @@ class MCPManager(ResourceProvider):
                     usage_limits=usage_limits,
                 )
 
-                return types.CreateMessageResult(
-                    role="assistant",
-                    content=types.TextContent(type="text", text=str(result.content)),
-                    model=result.model or "unknown",
-                    stopReason="endTurn",  # Could detect actual stop reason from result
-                )
+                return str(result.content)
 
         except Exception as e:
             logger.exception("Sampling failed")
-            return types.ErrorData(
-                code=types.INTERNAL_ERROR,
-                message=f"Sampling failed: {e!s}",
-            )
+            return f"Sampling failed: {e!s}"
 
-    async def setup_server(self, config: MCPServerConfig):
+    async def setup_server(self, config: MCPServerConfig) -> None:
         """Set up a single MCP server connection."""
         if not config.enabled:
             return

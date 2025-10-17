@@ -1,17 +1,13 @@
-"""MCP client integration for LLMling agent."""
+"""FastMCP-based client implementation for LLMling agent."""
 
 from __future__ import annotations
 
-from asyncio import Lock
-from contextlib import AsyncExitStack, suppress
+import contextlib
+import inspect
 import logging
-from pathlib import Path
-import shutil
 from typing import TYPE_CHECKING, Any, Self
-from urllib.parse import urlparse
 
-from pydantic import FileUrl
-from pydantic_ai import RunContext  # noqa: TC002
+from mcp.types import TextContent
 
 from llmling_agent.log import get_logger
 
@@ -19,18 +15,19 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from types import TracebackType
 
+    import fastmcp
+    from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
+    from fastmcp.client.logging import LogMessage
+    from fastmcp.client.messages import MessageHandler, MessageHandlerT
+    from fastmcp.client.sampling import ClientSamplingHandler
     import mcp
-    from mcp import ClientSession
-    from mcp.client.session import (
-        ElicitationFnT,
-        MessageHandlerFnT,
-        RequestContext,
-        SamplingFnT,
-    )
-    from mcp.shared.session import ProgressFnT, RequestResponder
+    from mcp.client.session import RequestContext
     from mcp.types import (
+        CreateMessageRequestParams,
+        ElicitRequestParams,
         Prompt as MCPPrompt,
         Resource as MCPResource,
+        SamplingMessage,
         Tool as MCPTool,
     )
 
@@ -53,36 +50,38 @@ LEVEL_MAP = {
 
 
 def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
-    """Convert MCP tool to OpenAI function schema."""
-    desc = tool.description or "No description provided"
-    return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
+    """Convert MCP tool to OpenAI function schema format."""
+    return {
+        "name": tool.name,
+        "description": tool.description or "",
+        "parameters": tool.inputSchema or {"type": "object", "properties": {}},
+    }
 
 
 class MCPClient:
-    """MCP client for communicating with MCP servers."""
+    """FastMCP-based client for communicating with MCP servers."""
 
     def __init__(
         self,
         transport_mode: TransportType = "stdio",
-        elicitation_callback: ElicitationFnT | None = None,
-        sampling_callback: SamplingFnT | None = None,
+        elicitation_callback: ElicitationHandler | None = None,
+        sampling_callback: ClientSamplingHandler | None = None,
         progress_handler: ProgressHandler | None = None,
-        message_handler: MessageHandlerFnT | None = None,
+        message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
-        self.exit_stack = AsyncExitStack()
-        self.session: ClientSession | None = None
-        self._available_tools: list[MCPTool] = []
         self._transport_mode = transport_mode
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
         self._progress_handler = progress_handler
-        self._message_handler = message_handler or self._default_message_handler
+        self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
-        self._enter_lock = Lock()
+        self._client: fastmcp.Client | None = None
+        self._available_tools: list[MCPTool] = []
+        self._connected = False
 
     async def __aenter__(self) -> Self:
-        """Enter context and redirect stdout if in stdio mode."""
+        """Enter context manager."""
         return self
 
     async def __aexit__(
@@ -91,96 +90,81 @@ class MCPClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ):
-        """Restore stdout if redirected and cleanup."""
-        try:
-            await self.cleanup()
-        except RuntimeError as e:
-            if "exit cancel scope in a different task" in str(e):
-                logger.warning("Ignoring known MCP cleanup issue: Task context mismatch")
-            else:
-                raise
-        except Exception:
-            logger.exception("Error during MCP client cleanup")
-            raise
+        """Exit context manager and cleanup."""
+        await self.cleanup()
 
     async def cleanup(self):
         """Clean up resources."""
-        with suppress(RuntimeError) as cm:
-            await self.exit_stack.aclose()
+        if self._client:
+            try:
+                await self._client.__aexit__(None, None, None)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Error during FastMCP client cleanup: %s", e)
+            finally:
+                self._client = None
+                self._connected = False
+                self._available_tools = []
 
-        if cm and cm.error and "exit cancel scope in a different task" in str(cm.error):
-            logger.warning("Ignoring known MCP cleanup issue: Task context mismatch")
-        elif cm and cm.error:
-            raise cm.error
+    async def _log_handler(self, message: LogMessage) -> None:
+        """Handle server log messages."""
+        msg = message.data.get("msg", "")
+        level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
+        logger.log(level, "MCP Server: %s", msg)
 
-    async def _default_message_handler(
-        self,
-        message: RequestResponder[mcp.ServerRequest, mcp.ClientResult]
-        | mcp.ServerNotification
-        | Exception,
+    async def _progress_handler_impl(
+        self, progress: float, total: float | None, message: str | None
     ):
-        """Default MCP message handler that updates tools on changes."""
-        import mcp
-        from mcp.shared.session import RequestResponder
-        from mcp.types import ClientResult, EmptyResult
+        """Handle progress updates from server."""
+        if self._progress_handler:
+            await self._progress_handler(
+                "",  # tool_name
+                "",  # tool_call_id
+                {},  # tool_input
+                progress,
+                total,
+                message,
+            )
 
-        if isinstance(message, Exception):
-            raise message
-        if isinstance(message, RequestResponder):
-            with message as resp:
-                await resp.respond(ClientResult(root=EmptyResult()))
-                return
-        match message.root:
-            case mcp.types.CancelledNotification(params=params):
-                logger.info("MCP operation cancelled: %s", params)
-            case mcp.ProgressNotification(params=params):
-                logger.debug("MCP progress: %s", params)
-            case mcp.LoggingMessageNotification(params=params):
-                # Map MCP log levels to Python logging integer levels
-
-                log_level = LEVEL_MAP[params.level]
-                logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
-                mcp_logger = get_logger(logger_name)
-                log_msg = str(params.data) if params.data else "MCP server log message"
-                mcp_logger.log(log_level, log_msg)
-
-            case mcp.ResourceUpdatedNotification(uri=uri):
-                logger.info("MCP resource updated: %s", uri)
-            case mcp.types.ResourceListChangedNotification(params=params):
-                logger.info("MCP resource list changed: %s", params)
-            case mcp.types.ToolListChangedNotification(params=params):
-                logger.info("MCP tool list changed: %s", params)
-                await self._refresh_tools()
-            case mcp.types.PromptListChangedNotification(params=params):
-                logger.info("MCP prompt list changed: %s", params)
-
-    async def _refresh_tools(self):
-        """Refresh available tools from the server."""
-        if not self.session:
-            logger.warning("Cannot refresh tools: not connected to MCP server")
-            return
+    async def _elicitation_handler_impl(
+        self,
+        message: str,
+        response_type: type,
+        params: ElicitRequestParams,
+        context: RequestContext,
+    ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
+        """Handle elicitation requests from server."""
+        if not self._elicitation_callback:
+            return None
 
         try:
-            result = await self.session.list_tools()
-            old_count = len(self._available_tools)
-            self._available_tools = result.tools
-            new_count = len(self._available_tools)
-            logger.info("Refreshed MCP tools: %d -> %d tools", old_count, new_count)
+            # Direct FastMCP callback - no compatibility layer
+            return await self._elicitation_callback(
+                message, response_type, params, context
+            )
         except Exception:
-            logger.exception("Failed to refresh MCP tools")
+            logger.exception("Elicitation handler failed")
+            from fastmcp.client.elicitation import ElicitResult
 
-    async def _default_elicitation_callback(
+            return ElicitResult(action="cancel")
+
+    async def _sampling_handler_impl(
         self,
+        messages: list[SamplingMessage],
+        params: CreateMessageRequestParams,
         context: RequestContext,
-        params: mcp.types.ElicitRequestParams,
-    ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
-        """Default elicitation callback that returns not supported."""
-        import mcp
+    ) -> str:
+        """Handle sampling requests from server."""
+        if not self._sampling_callback:
+            return "Sampling not supported"
 
-        return mcp.types.ErrorData(
-            code=mcp.types.INVALID_REQUEST,
-            message="Elicitation not supported",
-        )
+        try:
+            result = self._sampling_callback(messages, params, context)
+            if inspect.iscoroutine(result):
+                result = await result
+            return str(result)
+        except Exception as e:
+            logger.exception("Sampling handler failed")
+            return f"Sampling failed: {e}"
 
     async def connect(
         self,
@@ -189,120 +173,84 @@ class MCPClient:
         env: dict[str, str] | None = None,
         url: str | None = None,
     ):
-        """Connect to an MCP server.
+        """Connect to an MCP server using FastMCP.
 
         Args:
             command: Command to run (for stdio servers)
             args: Command arguments (for stdio servers)
             env: Optional environment variables
-            url: Server URL (for HTTP/HTTPS/WebSocket servers)
-                Supported schemes: http, https, ws, wss
-                - http/https: Uses StreamableHTTP transport by default
-                - http/https ending with "/sse": Auto-selects SSE transport
-                - ws/wss: Uses WebSocket transport (client-only)
-
-        Examples:
-            # Connect to stdio server
-            await client.connect("python", ["-m", "my_mcp_server"])
-
-            # Connect to HTTP server (StreamableHTTP)
-            await client.connect("", [], url="http://localhost:3000/mcp")
-
-            # Connect to SSE server (auto-detected from URL)
-            await client.connect("", [], url="https://api.example.com/mcp/sse")
-
-            # Connect to WebSocket server (client-only - can connect to WS servers)
-            await client.connect("", [], url="ws://localhost:8080/mcp")
+            url: Server URL (for HTTP servers)
         """
-        from mcp import ClientSession, StdioServerParameters
-        from mcp.client.sse import sse_client
-        from mcp.client.stdio import stdio_client
-        from mcp.client.streamable_http import streamablehttp_client
-        from mcp.client.websocket import websocket_client
+        import fastmcp
 
-        if url:
-            parsed_url = urlparse(url)
+        # Create appropriate client based on transport mode
+        client_kwargs: dict[str, Any] = {
+            "log_handler": self._log_handler,
+            "roots": self._accessible_roots if self._accessible_roots else None,
+        }
 
-            async with self._enter_lock:
-                if parsed_url.scheme in ("http", "https"):
-                    # Auto-select transport based on URL path or explicit transport_mode
-                    if url.endswith("/sse") or self._transport_mode == "sse":
-                        transport = await self.exit_stack.enter_async_context(
-                            sse_client(url)
-                        )
-                        read_stream, write_stream = transport
-                        if url.endswith("/sse"):
-                            logger.info("Using SSE transport (auto-selected from URL)")
-                        else:
-                            logger.info("Using SSE transport (explicit transport_mode)")
-                    else:
-                        # Default to StreamableHTTP for HTTP URLs
-                        transport = await self.exit_stack.enter_async_context(
-                            streamablehttp_client(url)
-                        )
-                        read_stream, write_stream, _ = transport
-                        logger.info("Using StreamableHTTP transport")
+        # Add optional handlers
+        if self._progress_handler:
+            client_kwargs["progress_handler"] = self._progress_handler_impl
+        if self._elicitation_callback:
+            client_kwargs["elicitation_handler"] = self._elicitation_handler_impl
+        if self._sampling_callback:
+            client_kwargs["sampling_handler"] = self._sampling_handler_impl
 
-                elif parsed_url.scheme in ("ws", "wss"):
-                    transport = await self.exit_stack.enter_async_context(
-                        websocket_client(url)
-                    )
-                    read_stream, write_stream = transport
-                    logger.info("Using WebSocket transport")
+        # Remove None values
+        client_kwargs = {k: v for k, v in client_kwargs.items() if v is not None}
 
-                else:
-                    msg = (
-                        f"Unsupported URL scheme: {parsed_url.scheme}. "
-                        "Supported schemes: http, https, ws, wss"
-                    )
-                    raise ValueError(msg)
+        try:
+            if self._transport_mode == "stdio":
+                # Use StdioTransport directly
+                from fastmcp.client.transports import StdioTransport
 
-                session = ClientSession(
-                    read_stream,
-                    write_stream,
-                    elicitation_callback=self.elicitation_wrapper,
-                    sampling_callback=self.sampling_wrapper,
-                    list_roots_callback=self.list_roots_wrapper,
-                    message_handler=self._message_handler,
-                )
-                self.session = await self.exit_stack.enter_async_context(session)
-                assert self.session
-                init_result = await self.session.initialize()
-                info = init_result.serverInfo
-                # Get available tools
-                result = await self.session.list_tools()
-                self._available_tools = result.tools
-                logger.info(
-                    "Connected to MCP server %s (%s) via %s",
-                    info.name,
-                    info.version,
-                    parsed_url.scheme.upper(),
-                )
-                return
-        command = shutil.which(command) or command
-        # Stdio connection
-        params = StdioServerParameters(command=command, args=args, env=env)
-        async with self._enter_lock:
-            stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(params)
-            )
-            stdio, write = stdio_transport
-            session = ClientSession(
-                stdio,
-                write,
-                elicitation_callback=self.elicitation_wrapper,
-                sampling_callback=self.sampling_wrapper,
-                list_roots_callback=self.list_roots_wrapper,
-                message_handler=self._message_handler,
-            )
-            self.session = await self.exit_stack.enter_async_context(session)
-            assert self.session
-            init_result = await self.session.initialize()
-            info = init_result.serverInfo
-            # Get available tools
-            result = await self.session.list_tools()
-            self._available_tools = result.tools
-            logger.info("Connected to MCP server %s (%s)", info.name, info.version)
+                transport = StdioTransport(command=command, args=args, env=env or {})
+                self._client = fastmcp.Client(transport, **client_kwargs)
+
+            elif self._transport_mode in ("sse", "streamable-http"):
+                if not url:
+                    msg = f"URL required for {self._transport_mode} transport"
+                    raise ValueError(msg)  # noqa: TRY301
+
+                # FastMCP auto-detects transport type from URL
+                if self._transport_mode == "sse" and not url.endswith("/sse"):
+                    url = url.rstrip("/") + "/sse"
+
+                self._client = fastmcp.Client(url, **client_kwargs)
+
+            else:
+                msg = f"Unsupported transport mode: {self._transport_mode}"
+                raise ValueError(msg)  # noqa: TRY301
+
+            # Connect to server
+            await self._client.__aenter__()
+            self._connected = True
+
+            # Refresh available tools
+            await self._refresh_tools()
+
+        except Exception as e:
+            msg = f"Failed to connect to MCP server: {e}"
+            logger.exception(msg)
+            if self._client:
+                with contextlib.suppress(Exception):
+                    await self._client.__aexit__(None, None, None)
+                self._client = None
+            raise RuntimeError(msg) from e
+
+    async def _refresh_tools(self) -> None:
+        """Refresh the list of available tools from the server."""
+        if not self._client or not self._connected:
+            return
+
+        try:
+            tools = await self._client.list_tools()
+            self._available_tools = tools
+            logger.debug("Refreshed %d tools from MCP server", len(tools))
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to refresh tools: %s", e)
+            self._available_tools = []
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get tools in OpenAI function format."""
@@ -312,51 +260,42 @@ class MCPClient:
         ]
 
     async def list_prompts(self) -> list[MCPPrompt]:
-        """Get available prompts from the server, handling pagination internally."""
-        import mcp
-
-        if not self.session:
+        """Get available prompts from the server."""
+        if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        all_prompts: list[MCPPrompt] = []
-        cursor = None
-        while True:
-            params = mcp.types.PaginatedRequestParams(cursor=cursor)
-            result = await self.session.list_prompts(params=params)
-            all_prompts.extend(result.prompts)
-            if result.nextCursor is None:
-                break
-            cursor = result.nextCursor
-        return all_prompts
+        try:
+            return await self._client.list_prompts()
+        except Exception as e:
+            msg = f"Failed to list prompts: {e}"
+            raise RuntimeError(msg) from e
 
     async def list_resources(self) -> list[MCPResource]:
-        """Get available resources from the server, handling pagination internally."""
-        import mcp
-
-        if not self.session:
+        """Get available resources from the server."""
+        if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        all_resources: list[MCPResource] = []
-        cursor = None
-        while True:
-            params = mcp.types.PaginatedRequestParams(cursor=cursor)
-            result = await self.session.list_resources(params=params)
-            all_resources.extend(result.resources)
-            if result.nextCursor is None:
-                break
-            cursor = result.nextCursor
-        return all_resources
+        try:
+            return await self._client.list_resources()
+        except Exception as e:
+            msg = f"Failed to list resources: {e}"
+            raise RuntimeError(msg) from e
 
     async def get_prompt(
         self, name: str, arguments: dict[str, str] | None = None
     ) -> mcp.types.GetPromptResult:
         """Get a specific prompt's content."""
-        if not self.session:
+        if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
-        return await self.session.get_prompt(name, arguments)
+
+        try:
+            return await self._client.get_prompt_mcp(name, arguments)
+        except Exception as e:
+            msg = f"Failed to get prompt '{name}': {e}"
+            raise RuntimeError(msg) from e
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
@@ -368,24 +307,19 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(ctx: RunContext | None = None, **kwargs: Any) -> str:
+        async def tool_callable(ctx: Any | None = None, **kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
-            # Filter out None values for optional params to avoid MCP validation errors
-            # Only include parameters that are either required or have non-None values
+            # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
             required_props = set(tool.inputSchema.get("required", []))
-            logger.debug("Tool %s: Original kwargs: %s", tool.name, kwargs)
-            logger.debug("Tool %s: Schema props: %s", tool.name, schema_props)
-            logger.debug("Tool %s: Required props: %s", tool.name, required_props)
+
             filtered_kwargs = {
                 k: v
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            logger.debug("Tool %s: Filtered kwargs: %s", tool.name, filtered_kwargs)
-            return await self.call_tool(
-                tool.name, filtered_kwargs, tool_call_id=ctx.tool_call_id if ctx else None
-            )
+
+            return await self.call_tool(tool.name, filtered_kwargs)
 
         # Set proper signature and docstring
         tool_callable.__signature__ = sig  # type: ignore
@@ -401,103 +335,26 @@ class MCPClient:
         arguments: dict | None = None,
         tool_call_id: str | None = None,
     ) -> str:
-        """Call an MCP tool with optional ACP progress bridging."""
-        from mcp.types import TextContent, TextResourceContents
-
-        if not self.session:
+        """Call an MCP tool."""
+        if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        # Create progress callback if handler and tool_call_id available
-        progress_callback = None
-        if self._progress_handler and tool_call_id:
-            progress_callback = self._create_progress_callback(
-                name, tool_call_id, arguments or {}
-            )
-
         try:
-            result = await self.session.call_tool(
-                name, arguments or {}, progress_callback=progress_callback
-            )
-            if not isinstance(result.content[0], TextResourceContents | TextContent):
-                msg = "Tool returned a non-text response"
-                raise TypeError(msg)  # noqa: TRY301
-            return result.content[0].text
+            # Use FastMCP's call_tool method
+            result = await self._client.call_tool(name, arguments or {})
+
+            # FastMCP returns a CallToolResult with structured data
+            # For compatibility, return text content
+            if result.content:
+                if isinstance(result.content[0], TextContent):
+                    return result.content[0].text
+                # TODO: proper support.
+                return str(result.content)
+            if result.data is not None:
+                return str(result.data)
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
-
-    def _create_progress_callback(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        tool_input: dict,
-    ) -> ProgressFnT:
-        """Create progress callback that uses the progress notification handler."""
-
-        async def progress_callback(
-            progress: float, total: float | None = None, message: str | None = None
-        ) -> None:
-            if not self._progress_handler:
-                return
-
-            try:
-                await self._progress_handler(
-                    tool_name,
-                    tool_call_id,
-                    tool_input,
-                    progress,
-                    total,
-                    message,
-                )
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Progress notification handler failed: %s", e)
-
-        return progress_callback
-
-    # Create a wrapper that matches the expected signature
-    async def elicitation_wrapper(
-        self,
-        context: RequestContext,
-        params: mcp.types.ElicitRequestParams,
-    ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
-        if self._elicitation_callback:
-            return await self._elicitation_callback(context, params)
-        return await self._default_elicitation_callback(context, params)
-
-    async def sampling_wrapper(
-        self,
-        context: RequestContext,
-        params: mcp.types.CreateMessageRequestParams,
-    ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
-        if self._sampling_callback:
-            return await self._sampling_callback(context, params)
-        # If no callback provided, let MCP SDK handle with its default
-        import mcp
-
-        return mcp.types.ErrorData(
-            code=mcp.types.INVALID_REQUEST,
-            message="Sampling not supported",
-        )
-
-    async def list_roots_wrapper(
-        self,
-        context: RequestContext,
-    ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
-        """List accessible filesystem roots."""
-        import mcp
-
-        roots = []
-        for root_path in self._accessible_roots:
-            try:
-                path = Path(root_path).resolve()
-                if path.exists():
-                    file_url = FileUrl(path.as_uri())
-                    roots.append(
-                        mcp.types.Root(uri=file_url, name=path.name or str(path))
-                    )
-            except (OSError, ValueError):
-                # Skip invalid paths or inaccessible directories
-                continue
-
-        return mcp.types.ListRootsResult(roots=roots)
+        else:
+            return "Tool executed successfully"
