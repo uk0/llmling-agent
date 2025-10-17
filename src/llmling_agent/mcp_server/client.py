@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 from typing import TYPE_CHECKING, Any, Self
 
+from pydantic import FileUrl
 from pydantic_ai import RunContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
@@ -54,46 +55,6 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     """Convert MCP tool to OpenAI function schema."""
     desc = tool.description or "No description provided"
     return {"name": tool.name, "description": desc, "parameters": tool.inputSchema}
-
-
-async def message_handler(
-    message: RequestResponder[mcp.ServerRequest, mcp.ClientResult]
-    | mcp.ServerNotification
-    | Exception,
-):
-    """Handle MCP server messages."""
-    import mcp
-    from mcp.shared.session import RequestResponder
-    from mcp.types import ClientResult, EmptyResult
-
-    if isinstance(message, Exception):
-        raise message
-    if isinstance(message, RequestResponder):
-        with message as resp:
-            await resp.respond(ClientResult(root=EmptyResult()))
-            return
-    match message.root:
-        case mcp.types.CancelledNotification(params=params):
-            logger.info("MCP operation cancelled: %s", params)
-        case mcp.ProgressNotification(params=params):
-            logger.debug("MCP progress: %s", params)
-        case mcp.LoggingMessageNotification(params=params):
-            # Map MCP log levels to Python logging integer levels
-
-            log_level = LEVEL_MAP[params.level]
-            logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
-            mcp_logger = get_logger(logger_name)
-            log_msg = str(params.data) if params.data else "MCP server log message"
-            mcp_logger.log(log_level, log_msg)
-
-        case mcp.ResourceUpdatedNotification(uri=uri):
-            logger.info("MCP resource updated: %s", uri)
-        case mcp.types.ResourceListChangedNotification(params=params):
-            logger.info("MCP resource list changed: %s", params)
-        case mcp.types.ToolListChangedNotification(params=params):
-            logger.info("MCP tool list changed: %s", params)
-        case mcp.types.PromptListChangedNotification(params=params):
-            logger.info("MCP prompt list changed: %s", params)
 
 
 class MCPClient:
@@ -175,18 +136,8 @@ class MCPClient:
                 logger.debug("MCP progress: %s", params)
             case mcp.LoggingMessageNotification(params=params):
                 # Map MCP log levels to Python logging integer levels
-                level_map = {
-                    "debug": logging.DEBUG,
-                    "info": logging.INFO,
-                    "notice": logging.INFO,
-                    "warning": logging.WARNING,
-                    "error": logging.ERROR,
-                    "critical": logging.CRITICAL,
-                    "alert": logging.CRITICAL,
-                    "emergency": logging.CRITICAL,
-                }
 
-                log_level = level_map[params.level]
+                log_level = LEVEL_MAP[params.level]
                 logger_name = f"mcp.{params.logger}" if params.logger else "mcp.server"
                 mcp_logger = get_logger(logger_name)
                 log_msg = str(params.data) if params.data else "MCP server log message"
@@ -249,7 +200,6 @@ class MCPClient:
         from mcp.client.stdio import stdio_client
 
         if url:
-            # SSE connection - just a placeholder for now
             logger.info("SSE servers not yet implemented")
             self.session = None
             return
@@ -263,7 +213,10 @@ class MCPClient:
             stdio, write = stdio_transport
 
             # Create a wrapper that matches the expected signature
-            async def elicitation_wrapper(context, params):
+            async def elicitation_wrapper(
+                context: RequestContext,
+                params: mcp.types.ElicitRequestParams,
+            ) -> mcp.types.ElicitResult | mcp.types.ErrorData:
                 if self._elicitation_callback:
                     return await self._elicitation_callback(context, params)
                 return await self._default_elicitation_callback(context, params)
@@ -293,8 +246,6 @@ class MCPClient:
                     try:
                         path = Path(root_path).resolve()
                         if path.exists():
-                            from pydantic import FileUrl
-
                             file_url = FileUrl(path.as_uri())
                             roots.append(
                                 mcp.types.Root(uri=file_url, name=path.name or str(path))
@@ -332,14 +283,17 @@ class MCPClient:
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """Get available prompts from the server, handling pagination internally."""
+        import mcp
+
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        all_prompts = []
+        all_prompts: list[MCPPrompt] = []
         cursor = None
         while True:
-            result = await self.session.list_prompts(cursor=cursor)
+            params = mcp.types.PaginatedRequestParams(cursor=cursor)
+            result = await self.session.list_prompts(params=params)
             all_prompts.extend(result.prompts)
 
             if result.nextCursor is None:
@@ -349,15 +303,18 @@ class MCPClient:
 
     async def list_resources(self) -> list[MCPResource]:
         """Get available resources from the server, handling pagination internally."""
+        import mcp
+
         if not self.session:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        all_resources = []
+        all_resources: list[MCPResource] = []
         cursor = None
 
         while True:
-            result = await self.session.list_resources(cursor=cursor)
+            params = mcp.types.PaginatedRequestParams(cursor=cursor)
+            result = await self.session.list_resources(params=params)
             all_resources.extend(result.resources)
 
             if result.nextCursor is None:
