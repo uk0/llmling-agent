@@ -58,14 +58,14 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
     mcp_servers = [
         StdioMcpServer(
             name="filesystem",
-            command="echo",  # Use echo as a dummy command
-            args=["filesystem server"],
+            command="npx",  # Use echo as a dummy command
+            args=["-y", "@upstash/context7-mcp"],
             env=[],
         ),
         StdioMcpServer(
             name="web_search",
-            command="echo",  # Use echo as a dummy command
-            args=["web search server"],
+            command="uvx",  # Use echo as a dummy command
+            args=["mcp-server-git"],
             env=[EnvVariable(name="API_KEY", value="dummy")],
         ),
     ]
