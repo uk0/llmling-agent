@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 from typing import TYPE_CHECKING, Any
 
 from schemez import create_schema
@@ -58,45 +57,48 @@ class CodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
+        # Build execution namespace
         namespace = await self._build_execution_namespace()
         if context_vars:
             namespace.update(context_vars)
 
-        # Parse the code to check for return statements, _result assignment, and await usage
-        try:
-            tree = ast.parse(python_code)
-            has_return = any(isinstance(node, ast.Return) for node in ast.walk(tree))
-            has_result_assignment = any(
-                isinstance(n, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == "_result" for t in n.targets)
-                for n in ast.walk(tree)
-            )
-            has_await = any(isinstance(node, ast.Await) for node in ast.walk(tree))
-        except SyntaxError:
-            has_return = False
-            has_result_assignment = False
-            has_await = False
+        # Execute the code - if it contains main(), call it; otherwise wrap it
+        if "async def main(" in python_code:
+            try:
+                exec(python_code, namespace)
+                return await namespace["main"]()
+            except IndentationError:
+                # If there's an indentation error, try to fix it by adding proper indentation
+                lines = python_code.splitlines()
+                fixed_lines = []
+                inside_main = False
 
-        # Execute the code
-        if has_return or has_await:
-            # Code has explicit returns or await, execute as function
-            func_code = f"""
+                for line in lines:
+                    if line.strip().startswith("async def main("):
+                        fixed_lines.append(line)
+                        inside_main = True
+                    elif (
+                        inside_main
+                        and line
+                        and not line.startswith("    ")
+                        and not line.startswith("\t")
+                    ):
+                        # Add indentation if missing inside main function
+                        fixed_lines.append("    " + line)
+                    else:
+                        fixed_lines.append(line)
+
+                fixed_code = "\n".join(fixed_lines)
+                exec(fixed_code, namespace)
+                return await namespace["main"]()
+
+        # Fallback: wrap in async function for backwards compatibility
+        func_code = f"""
 async def _exec_func():
 {chr(10).join("    " + line for line in python_code.splitlines())}
 """
-            exec(func_code, namespace)
-            return await namespace["_exec_func"]()
-        # Execute directly and check for _result or last expression
-        try:
-            # Try as expression first for single expressions
-            return eval(compile(python_code, "<meta_tool>", "eval"), namespace)
-        except SyntaxError:
-            # Execute as statements
-            exec(compile(python_code, "<meta_tool>", "exec"), namespace)
-            # Return _result if explicitly set, otherwise None
-            if has_result_assignment:
-                return namespace.get("_result")
-            return None
+        exec(func_code, namespace)
+        return await namespace["_exec_func"]()
 
     async def _build_tool_description(self) -> str:
         """Generate comprehensive tool description with available functions."""
@@ -139,10 +141,16 @@ async def _exec_func():
 
         parts.extend([
             "Usage notes:",
+            "- Write your code inside an 'async def main():' function",
+            "- IMPORTANT: Properly indent all code inside main() with 4 spaces",
             "- All tool functions are async, use 'await'",
-            "- Set '_result' variable to control return value",
-            "- Use 'return' statements for early returns",
-            "- Last expression value returned if no _result or return",
+            "- Use 'return' statements to return values from main()",
+            "- Pass parameters as keyword arguments: open(url='...', new=2)",
+            "- Example:",
+            "    async def main():",
+            "        # This comment is properly indented",
+            "        result = await open(url='https://example.com', new=2)",
+            "        return result",
         ])
 
         return "\n".join(parts)
