@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asyncio import Lock
 from contextlib import AsyncExitStack, suppress
 import logging
 from pathlib import Path
@@ -115,6 +116,7 @@ class MCPClient:
         self._progress_handler = progress_handler
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
+        self._enter_lock = Lock()
 
     async def __aenter__(self) -> Self:
         """Enter context and redirect stdout if in stdio mode."""
@@ -187,69 +189,72 @@ class MCPClient:
         command = shutil.which(command) or command
         # Stdio connection
         params = StdioServerParameters(command=command, args=args, env=env)
-        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(params))
-        stdio, write = stdio_transport
-
-        # Create a wrapper that matches the expected signature
-        async def elicitation_wrapper(context, params):
-            if self._elicitation_callback:
-                return await self._elicitation_callback(context, params)
-            return await self._default_elicitation_callback(context, params)
-
-        async def sampling_wrapper(
-            context: RequestContext,
-            params: mcp.types.CreateMessageRequestParams,
-        ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
-            if self._sampling_callback:
-                return await self._sampling_callback(context, params)
-            # If no callback provided, let MCP SDK handle with its default
-            import mcp
-
-            return mcp.types.ErrorData(
-                code=mcp.types.INVALID_REQUEST,
-                message="Sampling not supported",
+        async with self._enter_lock:
+            stdio_transport = await self.exit_stack.enter_async_context(
+                stdio_client(params)
             )
+            stdio, write = stdio_transport
 
-        async def list_roots_wrapper(
-            context: RequestContext,
-        ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
-            """List accessible filesystem roots."""
-            import mcp
+            # Create a wrapper that matches the expected signature
+            async def elicitation_wrapper(context, params):
+                if self._elicitation_callback:
+                    return await self._elicitation_callback(context, params)
+                return await self._default_elicitation_callback(context, params)
 
-            roots = []
-            for root_path in self._accessible_roots:
-                try:
-                    path = Path(root_path).resolve()
-                    if path.exists():
-                        from pydantic import FileUrl
+            async def sampling_wrapper(
+                context: RequestContext,
+                params: mcp.types.CreateMessageRequestParams,
+            ) -> mcp.types.CreateMessageResult | mcp.types.ErrorData:
+                if self._sampling_callback:
+                    return await self._sampling_callback(context, params)
+                # If no callback provided, let MCP SDK handle with its default
+                import mcp
 
-                        file_url = FileUrl(path.as_uri())
-                        roots.append(
-                            mcp.types.Root(uri=file_url, name=path.name or str(path))
-                        )
-                except (OSError, ValueError):
-                    # Skip invalid paths or inaccessible directories
-                    continue
+                return mcp.types.ErrorData(
+                    code=mcp.types.INVALID_REQUEST,
+                    message="Sampling not supported",
+                )
 
-            return mcp.types.ListRootsResult(roots=roots)
+            async def list_roots_wrapper(
+                context: RequestContext,
+            ) -> mcp.types.ListRootsResult | mcp.types.ErrorData:
+                """List accessible filesystem roots."""
+                import mcp
 
-        session = ClientSession(
-            stdio,
-            write,
-            elicitation_callback=elicitation_wrapper,
-            sampling_callback=sampling_wrapper,
-            list_roots_callback=list_roots_wrapper,
-            message_handler=self._message_handler,
-        )
-        self.session = await self.exit_stack.enter_async_context(session)
-        assert self.session
-        init_result = await self.session.initialize()
-        info = init_result.serverInfo
-        # Get available tools
-        result = await self.session.list_tools()
-        self._available_tools = result.tools
-        logger.info("Connected to MCP server %s (%s)", info.name, info.version)
-        logger.info("Available tools: %s", len(self._available_tools))
+                roots = []
+                for root_path in self._accessible_roots:
+                    try:
+                        path = Path(root_path).resolve()
+                        if path.exists():
+                            from pydantic import FileUrl
+
+                            file_url = FileUrl(path.as_uri())
+                            roots.append(
+                                mcp.types.Root(uri=file_url, name=path.name or str(path))
+                            )
+                    except (OSError, ValueError):
+                        # Skip invalid paths or inaccessible directories
+                        continue
+
+                return mcp.types.ListRootsResult(roots=roots)
+
+            session = ClientSession(
+                stdio,
+                write,
+                elicitation_callback=elicitation_wrapper,
+                sampling_callback=sampling_wrapper,
+                list_roots_callback=list_roots_wrapper,
+                message_handler=self._message_handler,
+            )
+            self.session = await self.exit_stack.enter_async_context(session)
+            assert self.session
+            init_result = await self.session.initialize()
+            info = init_result.serverInfo
+            # Get available tools
+            result = await self.session.list_tools()
+            self._available_tools = result.tools
+            logger.info("Connected to MCP server %s (%s)", info.name, info.version)
+            logger.info("Available tools: %s", len(self._available_tools))
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get tools in OpenAI function format."""
