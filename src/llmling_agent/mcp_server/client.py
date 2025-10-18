@@ -179,7 +179,6 @@ class MCPClient:
         Args:
             config: MCP server configuration object
         """
-        import fastmcp
         from fastmcp.client import SSETransport, StreamableHttpTransport
         from fastmcp.client.transports import StdioTransport
 
@@ -190,18 +189,9 @@ class MCPClient:
         )
 
         # Create message handler if needed
-        msg_handler = None
-        if self._use_default_message_handler:
-            from llmling_agent.mcp_server.message_handler import MCPMessageHandler
-
-            msg_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(self)
-        else:
-            msg_handler = self._message_handler
-
         try:
             # Create transport based on config type
             transport: ClientTransport
-
             match config:
                 case StdioMCPServerConfig(command=command, args=args):
                     env = config.get_env_vars()
@@ -219,18 +209,7 @@ class MCPClient:
                     raise ValueError(msg)  # noqa: TRY301
 
             # Create client with transport
-            self._client = fastmcp.Client(
-                transport,
-                log_handler=self._log_handler,
-                roots=self._accessible_roots,
-                timeout=config.timeout,
-                progress_handler=self._progress_handler_impl,
-                elicitation_handler=self._elicitation_handler_impl,
-                sampling_handler=self._sampling_handler_impl,
-                message_handler=msg_handler,
-                auth="oauth" if use_oauth else None,
-            )
-
+            self._client = self._get_client(transport, config.timeout, use_oauth)
             await self._client.__aenter__()  # Connect to server
             self._connected = True
             await self._refresh_tools()
@@ -243,6 +222,33 @@ class MCPClient:
                     await self._client.__aexit__(None, None, None)
                 self._client = None
             raise RuntimeError(msg) from e
+
+    def _get_client(
+        self,
+        transport: ClientTransport,
+        timeout: float,
+        use_oauth: bool = False,
+    ):
+        import fastmcp
+
+        if self._use_default_message_handler:
+            from llmling_agent.mcp_server.message_handler import MCPMessageHandler
+
+            msg_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(self)
+        else:
+            msg_handler = self._message_handler
+
+        return fastmcp.Client(
+            transport,
+            log_handler=self._log_handler,
+            roots=self._accessible_roots,
+            timeout=timeout,
+            progress_handler=self._progress_handler_impl,
+            elicitation_handler=self._elicitation_handler_impl,
+            sampling_handler=self._sampling_handler_impl,
+            message_handler=msg_handler,
+            auth="oauth" if use_oauth else None,
+        )
 
     async def _refresh_tools(self) -> None:
         """Refresh the list of available tools from the server."""
