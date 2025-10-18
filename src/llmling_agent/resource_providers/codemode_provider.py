@@ -14,12 +14,14 @@ from llmling_agent.tools.base import Tool
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from schemez.typedefs import Property
+
 
 async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     """Fallback signature extraction from tool schema."""
     schema = tool.schema["function"]
     params = schema.get("parameters", {}).get("properties", {})
-    required = set(schema.get("required", []))
+    required = set(schema.get("required", []))  # type: ignore
 
     param_strs = []
     for name, param_info in params.items():
@@ -34,7 +36,7 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
 
 
-async def _infer_parameter_type(tool: Tool, param_name: str, param_info: dict) -> str:  # noqa: PLR0911
+async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> str:  # noqa: PLR0911
     """Infer parameter type from schema and function inspection."""
     schema_type = param_info.get("type", "Any")
 
