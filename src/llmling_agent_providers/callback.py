@@ -130,7 +130,7 @@ if __name__ == "__main__":
         from llmling_agent.agent.agent import Agent
 
         provider = CallbackProvider(str.upper, name="uppercase")
-        uppercase = Agent[Any](provider=provider)
+        uppercase = Agent(provider=provider)
 
         # Normal usage
         result = await uppercase.run("hello")
