@@ -18,7 +18,7 @@ class TestACPIntegration:
         def simple_callback(message: str) -> str:
             return f"Test response: {message}"
 
-        agent = Agent[None](name="test_agent", provider=simple_callback)
+        agent = Agent(name="test_agent", provider=simple_callback)
         pool = AgentPool[None]()
         pool.register("test_agent", agent)
         return pool
@@ -91,8 +91,8 @@ class TestACPIntegration:
         def callback2(message: str) -> str:
             return f"Agent2 response: {message}"
 
-        agent1 = Agent[None](name="agent1", provider=callback1)
-        agent2 = Agent[None](name="agent2", provider=callback2)
+        agent1 = Agent(name="agent1", provider=callback1)
+        agent2 = Agent(name="agent2", provider=callback2)
 
         multi_pool = AgentPool[None]()
         multi_pool.register("agent1", agent1)

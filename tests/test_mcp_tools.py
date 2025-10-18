@@ -16,10 +16,7 @@ async def test_mcp_tool_call():
     def track_tool_usage(tool_name: str, **kwargs):
         tool_calls.append((tool_name, kwargs))
 
-    async with Agent[None](
-        model=model,
-        mcp_servers=["npx -y @upstash/context7-mcp"],
-    ) as agent:
+    async with Agent(model=model, mcp_servers=["npx -y @upstash/context7-mcp"]) as agent:
         agent.tool_used.connect(track_tool_usage)
         result = await agent.run(sys_prompt)
 

@@ -73,7 +73,7 @@ if __name__ == "__main__":
     from llmling_agent import Agent, ChatMessage
     from llmling_agent.talk.talk import Talk
 
-    agent = Agent[None]()
+    agent = Agent()
     message = ChatMessage("Hello, world!", "user")
     event = Talk.ConnectionProcessed(message, agent, [], False, "run")
     show(MessageFlowWidget(event))

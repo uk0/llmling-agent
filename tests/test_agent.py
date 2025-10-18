@@ -101,7 +101,7 @@ async def test_agent_model_override():
     default_response = "default response"
     override_response = "override response"
     model = TestModel(custom_output_text=default_response)
-    async with Agent[None](model=model, name="test-agent") as agent:
+    async with Agent(model=model, name="test-agent") as agent:
         # Run with default model
         result1 = await agent.run(SIMPLE_PROMPT)
         assert result1.data == default_response

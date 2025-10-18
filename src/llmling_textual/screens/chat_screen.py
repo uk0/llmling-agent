@@ -179,5 +179,5 @@ if __name__ == "__main__":
 
     from llmling_agent import Agent
 
-    agent = Agent[None]()
+    agent = Agent()
     show(ChatScreen(agent))

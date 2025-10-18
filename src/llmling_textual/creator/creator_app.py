@@ -93,7 +93,7 @@ class ConfigGeneratorApp(App):
         add_to_store: bool = False,
     ):
         super().__init__()
-        agent = Agent[None]().to_structured(YAMLCode)
+        agent = Agent().to_structured(YAMLCode)
         self.agent = agent
         self.current_config: str | None = None
         self.output_path = UPath(output_path) if output_path else None

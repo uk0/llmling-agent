@@ -19,7 +19,7 @@ def greet(name: str) -> str:
 @pytest.fixture
 def agent():
     """Create a test agent with some tools."""
-    agent = Agent[None](
+    agent = Agent(
         name="tester",
         description="A test agent",
         system_prompt=[
@@ -81,7 +81,7 @@ async def test_agent_info_control(agent):
 
 async def test_structured_prompt():
     """Test using a pydantic model as prompt."""
-    agent = Agent[None](name="structured", system_prompt=_TestPersonality())
+    agent = Agent(name="structured", system_prompt=_TestPersonality())
     result = await agent.sys_prompts.format_system_prompt(agent)
     assert "I am a test agent" in result
     assert "I speak formally" in result

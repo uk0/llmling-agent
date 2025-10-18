@@ -26,7 +26,7 @@ class PythonResult(Schema):
 async def run_example():
     """Show both ways of defining structured responses."""
     # Example 1: Python-defined structure
-    agent = Agent[None](
+    agent = Agent(
         model="openai:gpt-5-mini",
         system_prompt="Summarize text in a structured way.",
     )

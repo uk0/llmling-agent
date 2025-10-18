@@ -47,7 +47,7 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](name="test_agent", provider=simple_callback)
+    agent = Agent(name="test_agent", provider=simple_callback)
     agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
     client = DefaultACPClient(allow_file_operations=True)
@@ -106,7 +106,7 @@ async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](name="test_agent", provider=simple_callback)
+    agent = Agent(name="test_agent", provider=simple_callback)
     agent_pool = AgentPool[None]()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
     client = DefaultACPClient()
@@ -139,7 +139,7 @@ async def test_tool_integration():
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent[None](name="test_agent", provider=simple_callback)
+    agent = Agent(name="test_agent", provider=simple_callback)
 
     async with agent:
         initial_tools = len(await agent.tools.get_tools())

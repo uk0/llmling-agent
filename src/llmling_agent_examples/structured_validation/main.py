@@ -40,7 +40,7 @@ class RavingReview(MovieReview):
 
 async def main():
     # Create movie critic agent
-    base_agent = Agent[None](
+    base_agent = Agent(
         name="movie_critic",
         model="openai:gpt-5",
         system_prompt=(

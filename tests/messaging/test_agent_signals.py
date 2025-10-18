@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 async def test_message_chain():
     """Test that message chain tracks transformations correctly."""
-    async with Agent[None](name="agent-a", model="test") as agent_a:  # noqa: SIM117
-        async with Agent[None](name="agent-b", model="test") as agent_b:
-            async with Agent[None](name="agent-c", model="test") as agent_c:
+    async with Agent(name="agent-a", model="test") as agent_a:  # noqa: SIM117
+        async with Agent(name="agent-b", model="test") as agent_b:
+            async with Agent(name="agent-c", model="test") as agent_c:
                 # Connect chain
                 agent_a.connect_to(agent_b)
                 agent_b.connect_to(agent_c)
@@ -38,8 +38,8 @@ async def test_run_result_not_modified_by_connections():
     """Test that the message returned by run() isn't modified by connections."""
     # Create two agents
     model = TestModel(custom_output_text="Response from B")
-    async with Agent[None](name="agent-a", model=model) as agent_a:  # noqa: SIM117
-        async with Agent[None](name="agent-b", model=model) as agent_b:
+    async with Agent(name="agent-a", model=model) as agent_a:  # noqa: SIM117
+        async with Agent(name="agent-b", model=model) as agent_b:
             # Connect A to B
             agent_a.connect_to(agent_b)
 
@@ -66,9 +66,9 @@ async def test_message_chain_through_routing():
     model_b = TestModel(custom_output_text="Response from B")
     model_c = TestModel(custom_output_text="Response from C")
 
-    async with Agent[None](name="agent-a", model="test") as agent_a:  # noqa: SIM117
-        async with Agent[None](name="agent-b", model=model_b) as agent_b:
-            async with Agent[None](name="agent-c", model=model_c) as agent_c:
+    async with Agent(name="agent-a", model="test") as agent_a:  # noqa: SIM117
+        async with Agent(name="agent-b", model=model_b) as agent_b:
+            async with Agent(name="agent-c", model=model_c) as agent_c:
                 # Track messages received by C
                 received_by_c: list[ChatMessage[Any]] = []
                 agent_c.message_received.connect(received_by_c.append)

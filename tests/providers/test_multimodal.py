@@ -6,9 +6,7 @@ from llmling_agent.models.content import ImageURLContent
 
 async def test_vision():
     """Test basic vision capability with a small, public image."""
-    agent = Agent[None](
-        provider="pydantic_ai", name="test-vision", model="openai:gpt-5-nano"
-    )
+    agent = Agent(provider="pydantic_ai", name="test-vision", model="openai:gpt-5-nano")
 
     # Using a small, public image
     msg = "https://python.org/static/community_logos/python-logo-master-v3-TM.png"

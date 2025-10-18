@@ -84,7 +84,7 @@ if __name__ == "__main__":
     async def main():
         from llmling_agent import Agent
 
-        agent = Agent[None](model="gpt-5-mini", tools=[search_for_issues])
+        agent = Agent(model="gpt-5-mini", tools=[search_for_issues])
         result = await agent.run(
             "Search for the ticket SCRUM-6 using JIRA query syntax."
             "Return all information completely untouched."

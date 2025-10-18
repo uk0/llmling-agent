@@ -28,7 +28,7 @@ async def main():
     )
 
     # Create agent with MCP server
-    agent = Agent[None](
+    agent = Agent(
         name="demo_agent",
         model="openai:gpt-5-nano",
         system_prompt="You are a helpful assistant with code fixing tools.",

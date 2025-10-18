@@ -74,7 +74,7 @@ async def get_structured[T](
         Exception: If LLM call fails and no error_handler recovers
     """
     """Get structured output from LLM using function calling."""
-    async with Agent[None](
+    async with Agent(
         model=model,
         system_prompt=system_prompt or [],
         name="structured",
@@ -94,7 +94,7 @@ async def get_structured_multiple[T](
     model: ModelType,
 ) -> list[T]:
     """Extract multiple structured instances from text."""
-    async with Agent[None](model=model, name="structured") as agent:
+    async with Agent(model=model, name="structured") as agent:
         return await agent.talk.extract_multiple(prompt, target)
 
 
@@ -130,7 +130,7 @@ async def pick_one[T](
     assert select_option.__doc__
     select_option.__doc__ += f"\nOptions:\n{docs}"
     sys_prompt = "Select the most appropriate option based on the context."
-    async with Agent[None](model=model, system_prompt=sys_prompt) as agent:
+    async with Agent(model=model, system_prompt=sys_prompt) as agent:
         agent.tools.register_tool(select_option, enabled=True)
         await agent.run(prompt)
         return instances["selected"]

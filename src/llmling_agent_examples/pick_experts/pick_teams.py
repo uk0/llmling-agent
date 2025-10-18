@@ -12,28 +12,28 @@ from llmling_agent_examples.utils import run
 
 async def main():
     # Parallel team members
-    developer = Agent[None](
+    developer = Agent(
         name="developer",
         description="Implements new code features and changes",
         model="gpt-5-mini",
         system_prompt="You write Python code and implement features.",
     )
 
-    doc_writer = Agent[None](
+    doc_writer = Agent(
         name="doc_writer",
         description="Writes and updates technical documentation",
         model="gpt-5-mini",
         system_prompt="You specialize in writing technical documentation.",
     )
 
-    lazy_bob = Agent[None](
+    lazy_bob = Agent(
         name="lazy_bob",
         description="Has no useful skills or contributions",
         model="gpt-5-mini",
         system_prompt="You avoid work at all costs.",
     )
 
-    team_lead = Agent[None](
+    team_lead = Agent(
         name="team_lead",
         model="gpt-5-mini",
         system_prompt="You assign work to team members based on their skills.",

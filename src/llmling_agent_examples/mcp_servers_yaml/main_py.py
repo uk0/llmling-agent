@@ -24,8 +24,8 @@ SERVERS = ["uvx mcp-server-git"]
 
 
 async def run_example():
-    picker = Agent[None](model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
-    analyzer = Agent[None](model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
+    picker = Agent(model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
+    analyzer = Agent(model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
 
     # Connect picker to analyzer
     picker >> analyzer
@@ -39,7 +39,7 @@ async def run_example():
         await picker.run("Get the latest commit hash! ")
 
     # MCP servers also work on team level for all its members
-    agent_without_mcp_server = Agent[None](model=MODEL, system_prompt=ANALYZER)
+    agent_without_mcp_server = Agent(model=MODEL, system_prompt=ANALYZER)
     team = Team([agent_without_mcp_server], mcp_servers=["uvx mcp-hn"])
     async with team:
         # this will show you the MCP server tools
