@@ -30,7 +30,7 @@ async def test_tool_confirmation():
     mock = MockInputProvider(tool_confirmation="allow")
     model = TestModel(call_tools=[tool_info_with.name])
 
-    agent = Agent[None]("test-agent", model=model, input_provider=mock)
+    agent = Agent("test-agent", model=model, input_provider=mock)
     agent.tools.register(tool_info_with.name, tool_info_with)
 
     # Run agent - should trigger confirmation for the tool
@@ -46,7 +46,7 @@ async def test_tool_confirmation():
     mock = MockInputProvider(tool_confirmation="allow")
     model = TestModel(call_tools=[tool_info_without.name])
 
-    agent = Agent[None]("test-agent", model=model, input_provider=mock)
+    agent = Agent("test-agent", model=model, input_provider=mock)
     agent.tools.register(tool_info_without.name, tool_info_without)
 
     # Run agent - should NOT trigger confirmation

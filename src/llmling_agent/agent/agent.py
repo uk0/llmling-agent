@@ -1270,7 +1270,7 @@ if __name__ == "__main__":
     _model = "openai:gpt-5-nano"
 
     async def main():
-        async with Agent[None](model=_model, tools=["webbrowser.open"]) as agent:
+        async with Agent(model=_model, tools=["webbrowser.open"]) as agent:
             agent.tool_used.connect(print)
             async for chunk in agent.run_stream(sys_prompt):
                 print(chunk)

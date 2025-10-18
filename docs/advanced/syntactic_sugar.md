@@ -97,8 +97,8 @@ agent3 = Agent[OtherDeps]()
 mixed = agent1 & agent3  # Team[list[Any]]
 
 # No dependencies
-agent4 = Agent[None]()
-agent5 = Agent[None]()
+agent4 = Agent()
+agent5 = Agent()
 clean = agent4 & agent5  # Team[None]
 ```
 

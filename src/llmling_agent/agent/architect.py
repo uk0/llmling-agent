@@ -60,7 +60,7 @@ async def create_architect_agent(
     core_code = await read_folder_as_text(CORE_CONFIG_PATH, pattern="**/*.py")
     readme = await read_path(README_URL)
     context = f"Code:\n{core_code}\n{code}\n\nExample:\n{EXAMPLE}\n\\Readme:\n{readme}"
-    agent = Agent[None](
+    agent = Agent(
         name,
         model=model,
         provider=provider,

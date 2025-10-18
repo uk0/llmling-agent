@@ -57,7 +57,7 @@ async def test_tool_context_injection():
     test_deps = {"key": "value"}
     context = AgentContext[Any].create_default("test")
     context.data = test_deps
-    async with Agent[None](model=MODEL) as agent:
+    async with Agent(model=MODEL) as agent:
         agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
@@ -87,7 +87,7 @@ async def test_plain_tool_no_context():
         count += 1
         return f"Got arg: {arg}"
 
-    async with Agent[None](model=MODEL) as agent:
+    async with Agent(model=MODEL) as agent:
         agent.context = AgentContext.create_default("test")
         agent.tools.register_tool(plain_tool, enabled=True)
         # Should work without error
@@ -137,7 +137,7 @@ async def test_team_creation():
 
 async def test_context_compatibility():
     """Test that both context types work in tools."""
-    async with Agent[None](model=MODEL) as agent:
+    async with Agent(model=MODEL) as agent:
         agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
         agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
         agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")

@@ -742,7 +742,7 @@ you can easily generate static documentation for websites with a few lines of co
 @nav.route.page("Feature XYZ", icon="oui:documentation", hide="toc")
 def gen_docs(page: mk.MkPage):
     """Generate docs using agents."""
-    agent = Agent[None](model="openai:gpt-5-nano")
+    agent = Agent(model="openai:gpt-5-nano")
     page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
     source_code = load_source_code_from_folder(...)
     page += mk.MkCode() # if you want to display source code

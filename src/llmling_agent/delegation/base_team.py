@@ -553,8 +553,8 @@ if __name__ == "__main__":
     async def main():
         from llmling_agent import Agent, Team
 
-        agent = Agent[None]("My Agent")
-        agent_2 = Agent[None]("My Agent")
+        agent = Agent("My Agent")
+        agent_2 = Agent("My Agent")
         team = Team([agent, agent_2], mcp_servers=["uvx mcp-server-git"])
         async with team:
             print(await agent.tools.get_tools())
