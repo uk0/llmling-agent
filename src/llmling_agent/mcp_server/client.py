@@ -7,8 +7,6 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from mcp.types import TextContent
-
 from llmling_agent.log import get_logger
 
 
@@ -347,6 +345,8 @@ class MCPClient:
         tool_call_id: str | None = None,
     ) -> str:
         """Call an MCP tool."""
+        from mcp.types import TextContent
+
         if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
