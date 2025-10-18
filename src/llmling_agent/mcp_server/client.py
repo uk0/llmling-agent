@@ -177,6 +177,43 @@ class MCPClient:
         Args:
             config: MCP server configuration object
         """
+        try:
+            # First attempt with configured auth
+            self._client = self._get_client(config)
+            await self._client.__aenter__()
+
+        except Exception as first_error:
+            # OAuth fallback for HTTP/SSE if not already using OAuth
+            if self._should_try_oauth_fallback(config):
+                try:
+                    if self._client:
+                        with contextlib.suppress(Exception):
+                            await self._client.__aexit__(None, None, None)
+
+                    self._client = self._get_client(config, force_oauth=True)
+                    await self._client.__aenter__()
+                    logger.info("Connected with OAuth fallback")
+                except Exception:  # noqa: BLE001
+                    raise first_error from None
+            else:
+                raise
+
+        self._connected = True
+        await self._refresh_tools()
+
+    def _should_try_oauth_fallback(self, config: MCPServerConfig) -> bool:
+        """Check if OAuth fallback should be attempted."""
+        from llmling_agent_config.mcp_server import StdioMCPServerConfig
+
+        # No fallback for stdio or if OAuth already configured
+        if isinstance(config, StdioMCPServerConfig):
+            return False
+
+        return not config.auth.oauth
+
+    def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
+        """Create FastMCP client based on config."""
+        import fastmcp
         from fastmcp.client import SSETransport, StreamableHttpTransport
         from fastmcp.client.transports import StdioTransport
 
@@ -186,53 +223,37 @@ class MCPClient:
             StreamableHTTPMCPServerConfig,
         )
 
+        transport: ClientTransport
+        # Create transport based on config type
+        match config:
+            case StdioMCPServerConfig(command=command, args=args):
+                env = config.get_env_vars()
+                transport = StdioTransport(command=command, args=args, env=env)
+                oauth = False
+                if force_oauth:
+                    msg = "OAuth is not supported for StdioMCPServerConfig"
+                    raise ValueError(msg)
+
+            case SSEMCPServerConfig(url=url, headers=headers, auth=auth):
+                transport = SSETransport(url=url, headers=headers)
+                oauth = auth.oauth
+
+            case StreamableHTTPMCPServerConfig(url=url, headers=headers, auth=auth):
+                transport = StreamableHttpTransport(url=url, headers=headers)
+                oauth = auth.oauth
+            case _:
+                msg = f"Unsupported server config type: {type(config)}"
+                raise ValueError(msg)
+
+        # Determine OAuth usage
+        use_oauth = force_oauth or oauth
+
         # Create message handler if needed
-        try:
-            # Create transport based on config type
-            transport: ClientTransport
-            match config:
-                case StdioMCPServerConfig(command=command, args=args):
-                    env = config.get_env_vars()
-                    use_oauth = False
-                    transport = StdioTransport(command=command, args=args, env=env)
-                case SSEMCPServerConfig(url=url, auth=auth, headers=headers):
-                    use_oauth = auth.oauth
-                    transport = SSETransport(url=url, headers=headers)
-
-                case StreamableHTTPMCPServerConfig(url=url, auth=auth, headers=headers):
-                    use_oauth = auth.oauth
-                    transport = StreamableHttpTransport(url=url, headers=headers)
-                case _:
-                    msg = f"Unsupported server config type: {type(config)}"
-                    raise ValueError(msg)  # noqa: TRY301
-
-            # Create client with transport
-            self._client = self._get_client(transport, config.timeout, use_oauth)
-            await self._client.__aenter__()  # Connect to server
-            self._connected = True
-            await self._refresh_tools()
-
-        except Exception as e:
-            msg = f"Failed to connect to MCP server: {e}"
-            logger.exception(msg)
-            if self._client:
-                with contextlib.suppress(Exception):
-                    await self._client.__aexit__(None, None, None)
-                self._client = None
-            raise RuntimeError(msg) from e
-
-    def _get_client(
-        self,
-        transport: ClientTransport,
-        timeout: float,
-        use_oauth: bool = False,
-    ):
-        import fastmcp
-
+        msg_handler: MessageHandlerT | MessageHandler | None
         if self._use_default_message_handler:
             from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 
-            msg_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(self)
+            msg_handler = MCPMessageHandler(self)
         else:
             msg_handler = self._message_handler
 
@@ -240,7 +261,7 @@ class MCPClient:
             transport,
             log_handler=self._log_handler,
             roots=self._accessible_roots,
-            timeout=timeout,
+            timeout=config.timeout,
             progress_handler=self._progress_handler_impl,
             elicitation_handler=self._elicitation_handler_impl,
             sampling_handler=self._sampling_handler_impl,
