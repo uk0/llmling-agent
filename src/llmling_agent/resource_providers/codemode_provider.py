@@ -34,7 +34,7 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
 
 
-async def _infer_parameter_type(tool: Tool, param_name: str, param_info: dict) -> str:
+async def _infer_parameter_type(tool: Tool, param_name: str, param_info: dict) -> str:  # noqa: PLR0911
     """Infer parameter type from schema and function inspection."""
     schema_type = param_info.get("type", "Any")
 

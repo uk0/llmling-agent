@@ -47,8 +47,7 @@ async def run_agent(
     **kwargs: Unpack[AgentKwargs],
 ) -> Any:
     """Run prompt through agent and return result."""
-    agent = Agent[None](**kwargs)
-    async with agent:
+    async with Agent[None](**kwargs) as agent:
         if image_url:
             image = ImageURLContent(url=image_url)
             result = await agent.run(prompt, image, result_type=result_type)

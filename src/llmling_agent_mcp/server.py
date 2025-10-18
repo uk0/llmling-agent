@@ -92,10 +92,9 @@ class LLMLingServer:
     async def shutdown(self):
         """Shutdown the server."""
         try:
-            if self._tasks:
-                for task in self._tasks:
-                    task.cancel()
-                await asyncio.gather(*self._tasks, return_exceptions=True)
+            for task in self._tasks:
+                task.cancel()
+            await asyncio.gather(*self._tasks, return_exceptions=True)
         finally:
             self._tasks.clear()
 
