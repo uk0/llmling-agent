@@ -338,7 +338,8 @@ if __name__ == "__main__":
         async with Agent(model="openai:gpt-4o-mini") as agent:
             agent.tools.add_provider(provider)
             result = await agent.run(
-                "Use the available open() function to open a web browser with URL https://www.google.com. Write code that uses the async open function provided in the tools."
+                "Use the available open() function to open a web browser "
+                "with URL https://www.google.com."
             )
             print(result)
 
