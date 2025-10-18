@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     import fastmcp
+    from fastmcp.client import ClientTransport
     from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
@@ -172,90 +173,66 @@ class MCPClient:
             logger.exception("Sampling handler failed")
             return f"Sampling failed: {e}"
 
-    async def connect(self, config: MCPServerConfig):  # noqa: PLR0915
+    async def connect(self, config: MCPServerConfig):
         """Connect to an MCP server using FastMCP.
 
         Args:
             config: MCP server configuration object
         """
         import fastmcp
+        from fastmcp.client import SSETransport, StreamableHttpTransport
+        from fastmcp.client.transports import StdioTransport
 
-        # Create appropriate client based on transport mode
-        client_kwargs: dict[str, Any] = {
-            "log_handler": self._log_handler,
-            "roots": self._accessible_roots if self._accessible_roots else None,
-            "timeout": config.timeout,
-        }
+        from llmling_agent_config.mcp_server import (
+            SSEMCPServerConfig,
+            StdioMCPServerConfig,
+            StreamableHTTPMCPServerConfig,
+        )
 
-        # Add optional handlers
-        if self._progress_handler:
-            client_kwargs["progress_handler"] = self._progress_handler_impl
-        if self._elicitation_callback:
-            client_kwargs["elicitation_handler"] = self._elicitation_handler_impl
-        if self._sampling_callback:
-            client_kwargs["sampling_handler"] = self._sampling_handler_impl
         # Create message handler if needed
+        msg_handler = None
         if self._use_default_message_handler:
             from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 
-            message_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(
-                self
-            )
+            msg_handler: MessageHandlerT | MessageHandler | None = MCPMessageHandler(self)
         else:
-            message_handler = self._message_handler
-
-        if message_handler:
-            client_kwargs["message_handler"] = message_handler
-
-        # Remove None values
-        client_kwargs = {k: v for k, v in client_kwargs.items() if v is not None}
+            msg_handler = self._message_handler
 
         try:
-            # Lazy import fastmcp to avoid startup overhead
-            import fastmcp
-
-            from llmling_agent_config.mcp_server import (
-                SSEMCPServerConfig,
-                StdioMCPServerConfig,
-                StreamableHTTPMCPServerConfig,
-            )
+            # Create transport based on config type
+            transport: ClientTransport
 
             match config:
                 case StdioMCPServerConfig(command=command, args=args):
-                    # Use StdioTransport directly
-                    from fastmcp.client.transports import StdioTransport
-
                     env = config.get_env_vars()
+                    use_oauth = False
                     transport = StdioTransport(command=command, args=args, env=env)
-                    self._client = fastmcp.Client(transport, **client_kwargs)
+                case SSEMCPServerConfig(url=url, auth=auth, headers=headers):
+                    use_oauth = auth.oauth
+                    transport = SSETransport(url=url, headers=headers)
 
-                case (
-                    SSEMCPServerConfig(url=url, auth=auth, headers=headers, type=typ)
-                    | StreamableHTTPMCPServerConfig(
-                        url=url, auth=auth, headers=headers, type=typ
-                    )
-                ):
-                    from fastmcp.client import SSETransport, StreamableHttpTransport
-
-                    # Add OAuth authentication if enabled
-                    if auth.oauth:
-                        client_kwargs["auth"] = "oauth"
-                        logger.debug("SSE client configured with OAuth authentication")
-                    if typ == "sse":
-                        sse_transport = SSETransport(url=url, headers=headers)
-                        self._client = fastmcp.Client(sse_transport, **client_kwargs)
-                    else:
-                        http_tp = StreamableHttpTransport(url=url, headers=headers)
-                        self._client = fastmcp.Client(http_tp, **client_kwargs)
+                case StreamableHTTPMCPServerConfig(url=url, auth=auth, headers=headers):
+                    use_oauth = auth.oauth
+                    transport = StreamableHttpTransport(url=url, headers=headers)
                 case _:
                     msg = f"Unsupported server config type: {type(config)}"
                     raise ValueError(msg)  # noqa: TRY301
 
-            # Connect to server
-            await self._client.__aenter__()
-            self._connected = True
+            # Create client with transport
+            self._client = fastmcp.Client(
+                transport,
+                log_handler=self._log_handler,
+                roots=self._accessible_roots,
+                timeout=config.timeout,
+                progress_handler=self._progress_handler_impl,
+                elicitation_handler=self._elicitation_handler_impl,
+                sampling_handler=self._sampling_handler_impl,
+                message_handler=msg_handler,
+                auth="oauth" if use_oauth else None,
+            )
 
-            # Refresh available tools
+            await self._client.__aenter__()  # Connect to server
+            self._connected = True
             await self._refresh_tools()
 
         except Exception as e:
