@@ -74,7 +74,6 @@ class MCPClient:
         self._progress_handler = progress_handler
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
-        self._use_default_message_handler = message_handler is None
         self._accessible_roots = accessible_roots or []
         self._client: fastmcp.Client | None = None
         self._available_tools: list[MCPTool] = []
@@ -237,7 +236,7 @@ class MCPClient:
 
         # Create message handler if needed
         msg_handler: MessageHandlerT | MessageHandler | None
-        if self._use_default_message_handler:
+        if not self._message_handler:
             from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 
             msg_handler = MCPMessageHandler(self)
