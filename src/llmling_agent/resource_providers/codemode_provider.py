@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 from typing import TYPE_CHECKING, Any
 
 from schemez import create_schema
@@ -15,6 +16,16 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from schemez.typedefs import Property
+
+
+TYPE_MAP = {
+    "string": "str",
+    "integer": "int",
+    "number": "float",
+    "boolean": "bool",
+    "array": "list",
+    "null": "None",
+}
 
 
 async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
@@ -36,26 +47,16 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
 
 
-async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> str:  # noqa: PLR0911
+async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> str:
     """Infer parameter type from schema and function inspection."""
     schema_type = param_info.get("type", "Any")
 
     # If schema has a specific type, use it
     if schema_type != "object":
-        type_map = {
-            "string": "str",
-            "integer": "int",
-            "number": "float",
-            "boolean": "bool",
-            "array": "list",
-            "null": "None",
-        }
-        return type_map.get(schema_type, "Any")
+        return TYPE_MAP.get(schema_type, "Any")
 
     # For 'object' type, try to infer from function signature
     try:
-        import inspect
-
         callable_func = tool.callable.callable
         sig = inspect.signature(callable_func)
 
@@ -72,15 +73,8 @@ async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Propert
             if param.default != inspect.Parameter.empty:
                 default_type = type(param.default).__name__
                 # Map common types
-                if default_type == "int":
-                    return "int"
-                if default_type == "bool":
-                    return "bool"
-                if default_type == "float":
-                    return "float"
-                if default_type == "str":
-                    return "str"
-
+                if default_type in ["int", "float", "str", "bool"]:
+                    return default_type
             # If no default and it's required, assume str for web-like functions
             required = set(
                 tool.schema.get("function", {}).get("parameters", {}).get("required", [])
@@ -106,14 +100,7 @@ async def _get_return_model_name(tool: Tool) -> str:
             return f"{tool.name.title()}Response"
         if return_schema.get("type") == "array":
             return f"list[{tool.name.title()}Item]"
-
-        type_map = {
-            "string": "str",
-            "integer": "int",
-            "number": "float",
-            "boolean": "bool",
-        }
-        return type_map.get(return_schema.get("type", "string"), "Any")
+        return TYPE_MAP.get(return_schema.get("type", "string"), "Any")
     except Exception:  # noqa: BLE001
         return "Any"
 
