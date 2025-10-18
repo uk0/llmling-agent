@@ -184,7 +184,7 @@ class MCPClient:
 
         except Exception as first_error:
             # OAuth fallback for HTTP/SSE if not already using OAuth
-            if self._should_try_oauth_fallback(config):
+            if _should_try_oauth_fallback(config):
                 try:
                     if self._client:
                         with contextlib.suppress(Exception):
@@ -200,16 +200,6 @@ class MCPClient:
 
         self._connected = True
         await self._refresh_tools()
-
-    def _should_try_oauth_fallback(self, config: MCPServerConfig) -> bool:
-        """Check if OAuth fallback should be attempted."""
-        from llmling_agent_config.mcp_server import StdioMCPServerConfig
-
-        # No fallback for stdio or if OAuth already configured
-        if isinstance(config, StdioMCPServerConfig):
-            return False
-
-        return not config.auth.oauth
 
     def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
         """Create FastMCP client based on config."""
@@ -245,9 +235,6 @@ class MCPClient:
                 msg = f"Unsupported server config type: {type(config)}"
                 raise ValueError(msg)
 
-        # Determine OAuth usage
-        use_oauth = force_oauth or oauth
-
         # Create message handler if needed
         msg_handler: MessageHandlerT | MessageHandler | None
         if self._use_default_message_handler:
@@ -266,7 +253,7 @@ class MCPClient:
             elicitation_handler=self._elicitation_handler_impl,
             sampling_handler=self._sampling_handler_impl,
             message_handler=msg_handler,
-            auth="oauth" if use_oauth else None,
+            auth="oauth" if (force_oauth or oauth) else None,
         )
 
     async def _refresh_tools(self) -> None:
@@ -400,3 +387,14 @@ class MCPClient:
             self._current_tool_name = None
             self._current_tool_call_id = None
             self._current_tool_input = None
+
+
+def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:
+    """Check if OAuth fallback should be attempted."""
+    from llmling_agent_config.mcp_server import StdioMCPServerConfig
+
+    # No fallback for stdio or if OAuth already configured
+    if isinstance(config, StdioMCPServerConfig):
+        return False
+
+    return not config.auth.oauth
