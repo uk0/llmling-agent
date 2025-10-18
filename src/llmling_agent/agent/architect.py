@@ -53,7 +53,7 @@ README_URL = "https://raw.githubusercontent.com/phil65/llmling-agent/main/README
 
 async def create_architect_agent(
     name: str = "config_generator",
-    model: str = "openrouter:o3-mini",
+    model: str = "openrouter:gpt-5-nano",
     provider: AgentType = "pydantic_ai",
 ) -> StructuredAgent[None, YAMLCode]:
     code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")

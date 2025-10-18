@@ -47,7 +47,7 @@ class BaseMCPServerConfig(Schema):
     env: dict[str, str] | None = None
     """Environment variables to pass to the server process."""
 
-    timeout: float = 30.0
+    timeout: float = 60.0
     """Timeout for the server process in seconds."""
 
     def get_env_vars(self) -> dict[str, str]:
