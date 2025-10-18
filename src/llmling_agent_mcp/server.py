@@ -7,7 +7,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp import FastMCP
-from mcp.server.lowlevel.server import NotificationOptions
 
 import llmling_agent
 from llmling_agent.utils.tasks import TaskManager
@@ -74,16 +73,6 @@ class LLMLingServer:
             version=llmling_agent.__version__,
         )
         self.server = self.fastmcp._mcp_server
-        self.server.notification_options = NotificationOptions(
-            prompts_changed=True,
-            resources_changed=True,
-            tools_changed=True,
-        )
-
-        self._setup_handlers()
-
-    def _setup_handlers(self):
-        """Register MCP protocol handlers."""
         register_handlers(self)
 
     async def start(self, *, raise_exceptions: bool = False):
